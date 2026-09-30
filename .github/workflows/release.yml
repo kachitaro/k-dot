@@ -172,7 +172,12 @@ jobs:
       - name: Generate Checksums
         run: |
           cd dist
-          sha256sum * > SHA256SUMS.txt
+          for f in *; do
+            if [ -f "$f" ]; then
+              sha256sum "$f" > "${f}.sha256"
+            fi
+          done
+          sha256sum dot-* > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - name: Create Release

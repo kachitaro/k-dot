@@ -2,7 +2,6 @@
 # Dotfiles PowerShell Configuration
 # ==============================================================================
 
-# Ngăn chặn load trùng lặp trong cùng một phiên (do PowerShell gọi cả profile.ps1 lẫn Microsoft.PowerShell_profile.ps1)
 if ($global:__DOTFILES_PROFILE_LOADED -and -not $env:FORCE_DOTFILES_RELOAD) {
     return
 }
@@ -33,7 +32,6 @@ if (Get-Module -Name PSReadLine) {
         Set-PSReadLineOption -PredictionSource History -ErrorAction SilentlyContinue
         Set-PSReadLineOption -PredictionViewStyle ListView -ErrorAction SilentlyContinue
 
-        # Tự động duy trì file lịch sử gọn nhẹ (100 dòng) vì đã có Atuin quản lý toàn bộ
         $histPath = (Get-PSReadLineOption).HistorySavePath
         if ($histPath -and (Test-Path $histPath)) {
             $fileInfo = Get-Item $histPath -ErrorAction SilentlyContinue
@@ -59,29 +57,25 @@ if (Get-Module -Name PSFzf) {
 # ------------------------------------------------------------------------------
 # 4. Modern CLI Tools (Phải load SAU PSReadLine để ghi đè phím)
 # ------------------------------------------------------------------------------
-if (Get-Command starship -ErrorAction SilentlyContinue) {
-    Invoke-Expression (&starship init powershell)
-}
+$cachedInitPs1 = if ($env:DOTFILES_DIR) { Join-Path $env:DOTFILES_DIR "themes\generated\init.ps1" } else { $null }
+if ($cachedInitPs1 -and (Test-Path $cachedInitPs1)) {
+    . $cachedInitPs1
+} else {
+    if (Get-Command starship -ErrorAction SilentlyContinue) {
+        Invoke-Expression (&starship init powershell)
+    }
 
-if (Get-Command fnm -ErrorAction SilentlyContinue) {
-    fnm env --use-on-cd --shell powershell | Out-String | Invoke-Expression
-}
+    if (Get-Command fnm -ErrorAction SilentlyContinue) {
+        fnm env --use-on-cd --shell powershell | Out-String | Invoke-Expression
+    }
 
-if (Get-Command zoxide -ErrorAction SilentlyContinue) {
-    zoxide init powershell | Out-String | Invoke-Expression
-}
+    if (Get-Command zoxide -ErrorAction SilentlyContinue) {
+        zoxide init powershell | Out-String | Invoke-Expression
+    }
 
-# Carapace (Ghi đè phím TAB)
-if (Get-Command carapace -ErrorAction SilentlyContinue) {
-    $env:CARAPACE_BRIDGES = 'zsh,fish,bash,inshellisense'
-    Set-PSReadLineOption -Colors @{ "Selection" = "`e[7m" }
-    Set-PSReadlineKeyHandler -Key Tab -Function MenuComplete
-    carapace _carapace | Out-String | Invoke-Expression
-}
-
-# Atuin (Ghi đè phím Mũi tên lên và Ctrl+R)
-if (Get-Command atuin -ErrorAction SilentlyContinue) {
-   Invoke-Expression ((&atuin init powershell --disable-up-arrow) -join "`n")
+    if (Get-Command atuin -ErrorAction SilentlyContinue) {
+        Invoke-Expression ((&atuin init powershell --disable-up-arrow) -join "`n")
+    }
 }
 
 # ------------------------------------------------------------------------------
@@ -110,9 +104,18 @@ function lt { eza -a --tree --level=3 --color=always --icons=always --group-dire
 # ------------------------------------------------------------------------------
 # 6. Load External Scripts & Themes
 # ------------------------------------------------------------------------------
-# Thiết lập biến DOTFILES_DIR
 if (-not $env:DOTFILES_DIR -and $PSScriptRoot) {
-    $env:DOTFILES_DIR = Split-Path -Path $PSScriptRoot -Parent
+    $parentDir = Split-Path -Path $PSScriptRoot -Parent
+    if (Test-Path (Join-Path $parentDir "themes")) {
+        $env:DOTFILES_DIR = $parentDir
+    } else {
+        $grandParent = Split-Path -Path $parentDir -Parent
+        if ($grandParent -and (Test-Path (Join-Path $grandParent "themes"))) {
+            $env:DOTFILES_DIR = $grandParent
+        } else {
+            $env:DOTFILES_DIR = $parentDir
+        }
+    }
 }
 if ($env:DOTFILES_DIR -and (Test-Path "$env:DOTFILES_DIR\bin")) {
     if ($env:PATH -notlike "*$env:DOTFILES_DIR\bin*") {
@@ -141,7 +144,7 @@ if (Test-Path -Path $funcPath) {
 $theme_candidates = @(
     $(if ($env:DOTFILES_DIR) { Join-Path $env:DOTFILES_DIR "themes\generated\theme.ps1" }),
     "$env:USERPROFILE\.dotfiles\themes\generated\theme.ps1",
-    "$env:USERPROFILE\Desktop\Work\dotfiles\themes\generated\theme.ps1"
+    "$env:USERPROFILE\.config\themes\generated\theme.ps1"
 )
 foreach ($t_path in $theme_candidates) {
     if ($t_path -and (Test-Path $t_path)) {

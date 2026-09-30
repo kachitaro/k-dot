@@ -22,12 +22,38 @@ Rebuild your development environment on **Windows 11/10** and **Linux / WSL / ma
 ## 📑 Table of Contents
 
 - [📸 Showcase & Preview](#-showcase--preview)
+- [📁 Repository Structure](#-repository-structure)
 - [🚀 Installation Guide](#-installation-guide)
+- [🔄 Migration Guide (For Existing Users)](#-migration-guide-for-existing-users)
 - [🧰 Management with `dot` CLI](#-management-with-dot-cli)
-- [🎨 Theme Engine (System-wide Color Sync)](#-theme-engine-system-wide-color-sync)
+- [🎨 Theme Engine (System-wide Color Sync)](#-theme-engine--shell-cache-system-wide-color-sync--fast-startup)
 - [⌨️ Keybindings & Utilities](#️-keybindings--utilities)
 - [☕ Support / Donate](#-support--donate)
 - [📜 License](#-license)
+
+---
+
+## 📁 Repository Structure
+
+```
+dotfiles/
+├── apps/                    # 📦 Application configurations (Auto-discovered by 'dot')
+│   ├── atuin/               # Shell history sync & fuzzy search
+│   ├── bat/                 # Syntax-highlighted cat alternative
+│   ├── nvim/                # Neovim IDE configuration (NvChad)
+│   ├── powershell/          # PowerShell 7 profile & functions
+│   ├── scoop/               # Scoop package manager configs
+│   ├── shell/               # POSIX Shell profiles (.bashrc, .zshrc)
+│   ├── starship/            # Starship cross-shell prompt
+│   └── wezterm/             # WezTerm GPU terminal emulator
+├── cli/                     # 🦀 Native Rust CLI ('dot' / 'k-dot')
+├── themes/                  # 🎨 Single-source-of-truth Theme Engine
+│   ├── theme.json           # Palette configuration (Catppuccin Mocha)
+│   └── generated/           # Compiled theme & cached shell init scripts
+├── install.ps1              # Windows setup script
+├── install.sh               # Linux/macOS setup script
+└── README.md                # Documentation
+```
 
 ---
 
@@ -79,6 +105,26 @@ curl -fsSL https://raw.githubusercontent.com/kachitaro/dotfiles/main/install.sh 
 
 ---
 
+## 🔄 Migration Guide (For Existing Users)
+
+If you previously installed/cloned this dotfiles suite with the old flat root structure, follow these steps to transition cleanly to the `apps/` structure:
+
+```bash
+# 1. Unlink legacy symlinks pointing to old root paths
+dot eject
+
+# 2. Pull the latest repository changes containing the apps/ directory
+git pull
+
+# 3. (If using prebuilt CLI) Update your dot binary
+dot update
+
+# 4. Re-link all configurations to the new apps/ structure
+dot inject --force
+```
+
+---
+
 ## 🧰 Management with `dot` CLI (Rust-powered)
 
 The management CLI (`k-dot` / `dot`) is written in **Rust** for blazing-fast startup, robust cross-platform path resolution, and native symlink handling without runtime dependencies.
@@ -87,7 +133,7 @@ The management CLI (`k-dot` / `dot`) is written in **Rust** for blazing-fast sta
 dot init [path]                  # Initialize standalone dotfiles workspace (default ~/.dotfiles) with starter theme.json
 dot install                      # Run system installer (Options: --force / -ForceInstall)
 dot update                       # Self-update CLI binary (dot) to latest version from GitHub Release
-dot add <path>                   # Adopt a config folder into repo (e.g. dot add ~/.config/alacritty)
+dot add <path>                   # Adopt a config into apps/ folder (e.g. dot add ~/.config/alacritty)
 dot eject                        # Unlink dotfiles and restore independent real files to system
 dot inject                       # Re-link dotfiles symlinks and configurations into system (Options: --force)
 dot uninstall                    # Fully uninstall dotfiles
@@ -112,18 +158,20 @@ cargo build --release
 
 ---
 
-## 🎨 Theme Engine (System-wide Color Sync)
+## 🎨 Theme Engine & Shell Cache (System-wide Color Sync & Fast Startup)
 
 All colors across Neovim, WezTerm, Starship, Bash, Zsh, and PowerShell are synchronized from a **single source of truth**: `themes/theme.json`.
 
 1. Edit colors in `themes/theme.json`.
-2. Run `dot theme reload`.
-3. The built-in Rust Theme Engine compiles JSON directly into:
+2. Run `dot theme reload` (or `dot inject`).
+3. The built-in Rust Theme Engine compiles JSON and freezes shell initialization output directly into:
    - `themes/generated/theme.lua` (WezTerm & Neovim)
    - `themes/generated/theme.sh` (Bash & Zsh)
    - `themes/generated/theme.ps1` (PowerShell)
-   - `atuin/themes/theme.toml` (Atuin Shell History)
-4. WezTerm, Neovim, and Shell dynamically pick up the new colors instantly.
+   - `themes/generated/init.zsh` / `init.bash` / `init.ps1` (Precompiled static init scripts for instant shell startup)
+   - `apps/atuin/themes/theme.toml` (Atuin Shell History)
+   - `apps/starship/starship.toml` (Starship Prompt Palette)
+4. WezTerm, Neovim, and Shell dynamically pick up the new colors instantly, and terminal startup times are significantly reduced by eliminating dynamic subprocess evals.
 
 Current default theme: **Catppuccin Mocha**.
 
@@ -144,7 +192,6 @@ Current default theme: **Catppuccin Mocha**.
 | :--------------------- | :-------------------------------------------------------------------------------- |
 | `Ctrl + R`             | **Atuin** interactive history search (with full duration, exit code, timestamp)   |
 | `Ctrl + F`             | **PSFzf / FZF** file finder                                                       |
-| `Tab`                  | **Carapace** rich menu auto-completion (with descriptions & syntax flags)        |
 | `z <dir>`              | **Zoxide** jump to frequently used directory                                      |
 | `g`                    | Alias for `git`                                                                   |
 | `ls`, `ll`, `la`, `lt` | **Eza** modern file listings (icons, git status, tree view)                       |
