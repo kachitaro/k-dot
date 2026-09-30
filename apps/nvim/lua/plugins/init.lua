@@ -1,43 +1,53 @@
 return {
   {
     "stevearc/conform.nvim",
-    -- event = 'BufWritePre', -- uncomment for format on save
     opts = require "configs.conform",
   },
 
-  -- These are some examples, uncomment them if you want to see them work!
   {
     "neovim/nvim-lspconfig",
     config = function()
       require "configs.lspconfig"
     end,
   },
-
-  -- Plugin gõ tiếng Việt trực tiếp trong Neovim (Chỉ hoạt động ở Insert Mode)
   {
-    "sontungexpt/vietnamese.nvim",
-    dependencies = { "sontungexpt/bim.nvim" },
-    event = "InsertEnter",
-    opts = {
-      enabled = true,
-      input_method = "telex", -- "telex" hoặc "vni"
-      orthography = "modern", -- "modern" (hòa, thúy) hoặc "old" (hoà, thuý)
+    "mfussenegger/nvim-dap",
+    dependencies = {
+      "rcarriga/nvim-dap-ui",
+      "nvim-neotest/nvim-nio",
+      "mxsdev/nvim-dap-vscode-js",
     },
-  },
+    config = function()
+      local dap, dapui = require("dap"), require("dapui")
+      dapui.setup()
+      dap.listeners.after.event_initialized["dapui_config"] = function()
+        dapui.open()
+      end
+      dap.listeners.before.event_terminated["dapui_config"] = function()
+        dapui.close()
+      end
 
-  -- Tự động ép IME hệ điều hành (Windows/macOS/Linux) về English khi ra Normal mode / thoát Neovim
-  {
-    "keaising/im-select.nvim",
-    event = "VeryLazy",
-    cond = function()
-      return vim.fn.executable "im-select" == 1 or vim.fn.executable "im-select.exe" == 1
+      require("dap-vscode-js").setup({
+        debugger_path = vim.fn.stdpath "data" .. "/mason/packages/js-debug-adapter",
+        adapters = { "pwa-node" },
+      })
+
+      for _, lang in ipairs { "typescript", "javascript", "typescriptreact" } do
+        dap.configurations[lang] = {
+          {
+            type = "pwa-node",
+            request = "launch",
+            name = "Launch file",
+            program = "${file}",
+            cwd = "${workspaceFolder}",
+          },
+        }
+      end
     end,
-    opts = {
-      default_im_select = "1033", -- US English
-      default_command = "im-select",
-      set_default_events = { "VimEnter", "FocusGained", "InsertLeave", "CmdlineLeave" },
-      set_previous_events = { "InsertEnter" },
-      async_switch_im = true,
-    },
+  },
+  {
+    "mg979/vim-visual-multi",
+    branch = "master",
+    event = "VeryLazy",
   },
 }

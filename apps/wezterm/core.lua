@@ -81,9 +81,13 @@ function module.setup(config)
   }
 
   config.window_decorations = "RESIZE"
-  config.window_background_opacity = 0.75 
   config.default_cursor_style = 'BlinkingBar'
   config.automatically_reload_config = true
+
+  config.color_scheme = 'catppuccin-frappe'
+  config.colors = {
+    compose_cursor = '#303446'
+  }
 
   config.keys = {
     {
