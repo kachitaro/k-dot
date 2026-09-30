@@ -104,25 +104,23 @@ fn clean_unix_shell_profiles(home_dir: &Path) -> Result<()> {
     ];
 
     for profile in shell_profiles {
-        if profile.is_file() {
-            if let Ok(content) = fs::read_to_string(&profile) {
-                let cleaned_lines: Vec<&str> = content
-                    .lines()
-                    .filter(|line| {
-                        !line.contains("# Load dotfiles config")
-                            && !line.contains("shell/.bashrc")
-                            && !line.contains("shell/.zshrc")
-                            && !line.contains("user_profile.ps1")
-                    })
-                    .collect();
-                let new_content = cleaned_lines.join("\n");
-                if new_content != content {
-                    fs::write(&profile, new_content)?;
-                    println!(
-                        "{}",
-                        format!("  Đã gỡ cấu hình khỏi: {}", profile.display()).green()
-                    );
-                }
+        if let Ok(content) = fs::read_to_string(&profile) {
+            let cleaned_lines: Vec<&str> = content
+                .lines()
+                .filter(|line| {
+                    !line.contains("# Load dotfiles config")
+                        && !line.contains("shell/.bashrc")
+                        && !line.contains("shell/.zshrc")
+                        && !line.contains("user_profile.ps1")
+                })
+                .collect();
+            let new_content = cleaned_lines.join("\n");
+            if new_content != content {
+                fs::write(&profile, new_content)?;
+                println!(
+                    "{}",
+                    format!("  Đã gỡ cấu hình khỏi: {}", profile.display()).green()
+                );
             }
         }
     }

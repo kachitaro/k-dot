@@ -168,7 +168,8 @@ pub fn create_safe_link(link: &Path, target: &Path, is_dir: bool, force: bool) -
                 if junction_created {
                     println!(
                         "{}",
-                        format!("  [+] Junction: {} -> {}", link.display(), target.display()).green()
+                        format!("  [+] Junction: {} -> {}", link.display(), target.display())
+                            .green()
                     );
                 } else {
                     println!(
