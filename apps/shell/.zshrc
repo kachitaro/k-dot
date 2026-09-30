@@ -31,7 +31,13 @@ export BAT_CONFIG_PATH="$HOME/.config/bat/config"
 # Dotfiles Directory Logic
 if [ -z "$DOTFILES_DIR" ]; then
     if [ -n "${(%):-%x}" ]; then
-        DOTFILES_DIR="$(cd "$(dirname "${(%):-%x}")/.." 2>/dev/null && pwd)"
+        _CURRENT_DIR="$(dirname "${(%):-%x}")"
+        if [ -d "$_CURRENT_DIR/../../themes" ]; then
+            DOTFILES_DIR="$(cd "$_CURRENT_DIR/../.." 2>/dev/null && pwd)"
+        else
+            DOTFILES_DIR="$(cd "$_CURRENT_DIR/.." 2>/dev/null && pwd)"
+        fi
+        unset _CURRENT_DIR
     fi
 fi
 export DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
@@ -71,7 +77,11 @@ alias lt="eza -a --tree --level=3 $EZA_STANDARD_OPTIONS"
 # 3. Completion Base (Compinit)
 # ------------------------------------------------------------------------------
 autoload -Uz compinit
-compinit
+if [[ -n ${ZDOTDIR:-$HOME}/.zcompdump(#qN.mh+24) ]]; then
+  compinit
+else
+  compinit -C
+fi
 
 # ------------------------------------------------------------------------------
 # 4. Modern CLI Tools & Completion Initializations
@@ -80,31 +90,25 @@ compinit
 # Zoxide (Modern cd)
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"
 
-# Atuin (SQLite Shell History)
+# Atuin (SQLite Shell History) environment
 [ -f "$HOME/.atuin/bin/env" ] && source "$HOME/.atuin/bin/env"
-command -v atuin >/dev/null 2>&1 && eval "$(atuin init zsh)"
 
-# Fzf (Fuzzy Finder)
+# Fzf (Fuzzy Finder) environment
 if command -v fzf >/dev/null 2>&1; then
     export FZF_DEFAULT_OPTS="--height 50% --layout=reverse --border --info=inline"
     export FZF_CTRL_T_OPTS="--preview 'if [ -d {} ]; then eza -a --tree --level=2 --color=always --icons=always {}; else bat --color=always --style=numbers,changes {}; fi' --preview-window 'right:55%,border-left' --bind 'ctrl-/:change-preview-window(down|hidden|)'"
     export FZF_ALT_C_OPTS="--preview 'eza -a --tree --level=2 --color=always --icons=always {}' --preview-window 'right:55%,border-left' --bind 'ctrl-/:change-preview-window(down|hidden|)'"
-    source <(fzf --zsh)
 fi
 
-# Carapace (Multi-shell Completion)
-if command -v carapace >/dev/null 2>&1; then
-    export CARAPACE_BRIDGES='zsh,fish,bash,inshellisense'
-    source <(carapace _carapace zsh)
+if [ -f "$DOTFILES_DIR/themes/generated/init.zsh" ]; then
+    source "$DOTFILES_DIR/themes/generated/init.zsh"
+else
+    # Fallback: chạy trực tiếp các lệnh khởi tạo
+    command -v atuin >/dev/null 2>&1 && eval "$(atuin init zsh --disable-up-arrow)"
+    command -v fzf >/dev/null 2>&1 && source <(fzf --zsh)
+    command -v fnm >/dev/null 2>&1 && eval "$(fnm env --use-on-cd --shell zsh)"
+    command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"
 fi
-
-# FNM (Fast Node Manager)
-if command -v fnm >/dev/null 2>&1; then
-    eval "$(fnm env --use-on-cd --shell zsh)"
-fi
-
-# Starship Prompt
-command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"
 
 # ------------------------------------------------------------------------------
 # 5. Functions & Themes
@@ -120,8 +124,8 @@ get_system_size() {
 # Load Theme
 if [ -f "$DOTFILES_DIR/themes/generated/theme.sh" ]; then
     source "$DOTFILES_DIR/themes/generated/theme.sh"
-elif [ -f "$HOME/Desktop/Work/dotfiles/themes/generated/theme.sh" ]; then
-    source "$HOME/Desktop/Work/dotfiles/themes/generated/theme.sh"
+elif [ -f "$HOME/.dotfiles/themes/generated/theme.sh" ]; then
+    source "$HOME/.dotfiles/themes/generated/theme.sh"
 fi
 
 # ------------------------------------------------------------------------------

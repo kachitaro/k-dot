@@ -51,7 +51,7 @@ fn get_timestamp() -> u64 {
 }
 
 /// Create a safe symlink from `link` pointing to `target`.
-/// 
+///
 /// 1. If `target` does not exist -> warns and skips without error.
 /// 2. If `link` already is a symlink -> removes it and recreates.
 /// 3. If `link` is a real file/dir -> backups to `<link>.bak_<timestamp>` (or deletes if `force` is true).
@@ -62,16 +62,16 @@ pub fn create_safe_link(link: &Path, target: &Path, is_dir: bool, force: bool) -
     if !target.exists() {
         eprintln!(
             "{}",
-            format!("  ⚠️ Target không tồn tại: {}", target.display()).yellow()
+            format!("  [!] Target không tồn tại: {}", target.display()).yellow()
         );
         return Ok(());
     }
 
-    if let Some(parent) = link.parent() {
-        if !parent.exists() {
-            fs::create_dir_all(parent)
-                .with_context(|| format!("Không thể tạo thư mục cha: {}", parent.display()))?;
-        }
+    if let Some(parent) = link.parent()
+        && !parent.exists()
+    {
+        fs::create_dir_all(parent)
+            .with_context(|| format!("Không thể tạo thư mục cha: {}", parent.display()))?;
     }
 
     let link_exists_or_symlink = fs::symlink_metadata(link).is_ok();
@@ -92,7 +92,11 @@ pub fn create_safe_link(link: &Path, target: &Path, is_dir: bool, force: bool) -
                 }
                 println!(
                     "{}",
-                    format!("  ⚠️ Đã xóa (ghi đè) file/thư mục hiện tại: {}", link.display()).yellow()
+                    format!(
+                        "  [!] Đã xóa (ghi đè) file/thư mục hiện tại: {}",
+                        link.display()
+                    )
+                    .yellow()
                 );
             } else {
                 let timestamp = get_timestamp();
@@ -105,7 +109,11 @@ pub fn create_safe_link(link: &Path, target: &Path, is_dir: bool, force: bool) -
                 })?;
                 println!(
                     "{}",
-                    format!("  ⚠️ Đã sao lưu file/thư mục hiện tại sang: {}", backup_path).yellow()
+                    format!(
+                        "  [!] Đã sao lưu file/thư mục hiện tại sang: {}",
+                        backup_path
+                    )
+                    .yellow()
                 );
             }
         }
@@ -122,7 +130,7 @@ pub fn create_safe_link(link: &Path, target: &Path, is_dir: bool, force: bool) -
         })?;
         println!(
             "{}",
-            format!("  ✅ Linked: {} -> {}", link.display(), target.display()).green()
+            format!("  [+] Linked: {} -> {}", link.display(), target.display()).green()
         );
     }
 
@@ -138,31 +146,62 @@ pub fn create_safe_link(link: &Path, target: &Path, is_dir: bool, force: bool) -
             Ok(_) => {
                 println!(
                     "{}",
-                    format!("  ✅ Linked: {} -> {}", link.display(), target.display()).green()
+                    format!("  [+] Linked: {} -> {}", link.display(), target.display()).green()
                 );
             }
             Err(e) => {
-                println!(
-                    "{}",
-                    format!(
-                        "  ⚠️ Không thể tạo Symlink ({}). Tiến hành copy file/thư mục thay thế...",
-                        e
-                    )
-                    .yellow()
-                );
-                if is_dir {
-                    copy_dir_all(target, link).with_context(|| {
-                        format!("Không thể copy thư mục fallback {} -> {}", target.display(), link.display())
-                    })?;
+                let junction_created = if is_dir {
+                    let status = std::process::Command::new("cmd")
+                        .args([
+                            "/C",
+                            "mklink",
+                            "/J",
+                            &link.to_string_lossy(),
+                            &target.to_string_lossy(),
+                        ])
+                        .output();
+                    matches!(status, Ok(out) if out.status.success())
                 } else {
-                    fs::copy(target, link).with_context(|| {
-                        format!("Không thể copy file fallback {} -> {}", target.display(), link.display())
-                    })?;
+                    false
+                };
+
+                if junction_created {
+                    println!(
+                        "{}",
+                        format!("  [+] Junction: {} -> {}", link.display(), target.display())
+                            .green()
+                    );
+                } else {
+                    println!(
+                        "{}",
+                        format!(
+                            "  [!] Không thể tạo Symlink/Junction ({}). Tiến hành copy file/thư mục thay thế...",
+                            e
+                        )
+                        .yellow()
+                    );
+                    if is_dir {
+                        copy_dir_all(target, link).with_context(|| {
+                            format!(
+                                "Không thể copy thư mục fallback {} -> {}",
+                                target.display(),
+                                link.display()
+                            )
+                        })?;
+                    } else {
+                        fs::copy(target, link).with_context(|| {
+                            format!(
+                                "Không thể copy file fallback {} -> {}",
+                                target.display(),
+                                link.display()
+                            )
+                        })?;
+                    }
+                    println!(
+                        "{}",
+                        format!("  [+] Copied: {} -> {}", link.display(), target.display()).green()
+                    );
                 }
-                println!(
-                    "{}",
-                    format!("  ✅ Copied: {} -> {}", link.display(), target.display()).green()
-                );
             }
         }
     }
@@ -244,4 +283,3 @@ mod tests {
         assert_eq!(backups.len(), 0);
     }
 }
-

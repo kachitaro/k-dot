@@ -162,8 +162,6 @@ function dot {
         $dotExe = "$PSScriptRoot\..\cli\target\debug\dot.exe"
     } elseif (Test-Path "$env:USERPROFILE\.dotfiles\cli\target\release\dot.exe") {
         $dotExe = "$env:USERPROFILE\.dotfiles\cli\target\release\dot.exe"
-    } elseif (Test-Path "D:\work\dotfiles\cli\target\release\dot.exe") {
-        $dotExe = "D:\work\dotfiles\cli\target\release\dot.exe"
     }
 
     if ($dotExe) {

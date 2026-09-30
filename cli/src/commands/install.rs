@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use std::process::Command;
 
 use crate::paths;
@@ -35,7 +35,10 @@ pub fn execute(force: bool) -> Result<()> {
             .with_context(|| format!("Không thể thực thi script cài đặt bằng {}", ps_cmd))?;
 
         if !status.success() {
-            bail!("Script cài đặt kết thúc với lỗi (exit code: {:?})", status.code());
+            bail!(
+                "Script cài đặt kết thúc với lỗi (exit code: {:?})",
+                status.code()
+            );
         }
     }
 
@@ -58,10 +61,12 @@ pub fn execute(force: bool) -> Result<()> {
             .with_context(|| "Không thể thực thi script cài đặt bằng bash")?;
 
         if !status.success() {
-            bail!("Script cài đặt kết thúc với lỗi (exit code: {:?})", status.code());
+            bail!(
+                "Script cài đặt kết thúc với lỗi (exit code: {:?})",
+                status.code()
+            );
         }
     }
-
 
     Ok(())
 }

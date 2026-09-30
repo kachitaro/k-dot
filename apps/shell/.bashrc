@@ -27,9 +27,21 @@ export BAT_CONFIG_PATH="$HOME/.config/bat/config"
 # Dotfiles Directory Logic
 if [ -z "$DOTFILES_DIR" ]; then
     if [ -n "$BASH_VERSION" ] && [ -n "${BASH_SOURCE[0]}" ]; then
-        DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd)"
+        _CURRENT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+        if [ -d "$_CURRENT_DIR/../../themes" ]; then
+            DOTFILES_DIR="$(cd "$_CURRENT_DIR/../.." 2>/dev/null && pwd)"
+        else
+            DOTFILES_DIR="$(cd "$_CURRENT_DIR/.." 2>/dev/null && pwd)"
+        fi
+        unset _CURRENT_DIR
     elif [ -n "$ZSH_VERSION" ]; then
-        DOTFILES_DIR="$(cd "$(dirname "${(%):-%x}")/.." 2>/dev/null && pwd)"
+        _CURRENT_DIR="$(dirname "${(%):-%x}")"
+        if [ -d "$_CURRENT_DIR/../../themes" ]; then
+            DOTFILES_DIR="$(cd "$_CURRENT_DIR/../.." 2>/dev/null && pwd)"
+        else
+            DOTFILES_DIR="$(cd "$_CURRENT_DIR/.." 2>/dev/null && pwd)"
+        fi
+        unset _CURRENT_DIR
     fi
 fi
 export DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
@@ -82,48 +94,42 @@ fi
 # Detect current shell (zsh or bash)
 CURRENT_SHELL=$(basename "$SHELL")
 
-# --- FNM (Fast Node Manager) ---
-if command -v fnm >/dev/null 2>&1; then
-    eval "$(fnm env --use-on-cd --shell $CURRENT_SHELL)"
-fi
-
-# --- Starship Prompt ---
-if command -v starship >/dev/null 2>&1; then
-    eval "$(starship init $CURRENT_SHELL)"
-fi
-
-# --- Carapace Multi-shell Completion ---
-if command -v carapace >/dev/null 2>&1; then
-    export CARAPACE_BRIDGES='zsh,fish,bash,inshellisense'
-    if [ "$CURRENT_SHELL" = "zsh" ]; then
-        source <(carapace _carapace zsh)
-    elif [ "$CURRENT_SHELL" = "bash" ]; then    
-        source <(carapace _carapace bash)
-    fi
-fi
-
-# --- Fzf ---
+# Fzf environment configuration
 if command -v fzf >/dev/null 2>&1; then
-    # Cấu hình FZF nâng cao với eza và bat
     export FZF_DEFAULT_OPTS="--height 50% --layout=reverse --border --info=inline"
     export FZF_CTRL_T_OPTS="--preview 'if [ -d {} ]; then eza -a --tree --level=2 --color=always --icons=always {}; else bat --color=always --style=numbers,changes {}; fi' --preview-window 'right:55%,border-left' --bind 'ctrl-/:change-preview-window(down|hidden|)'"
     export FZF_ALT_C_OPTS="--preview 'eza -a --tree --level=2 --color=always --icons=always {}' --preview-window 'right:55%,border-left' --bind 'ctrl-/:change-preview-window(down|hidden|)'"
+fi
 
-    # Load Keybindings & Completions
-    if [ "$CURRENT_SHELL" = "zsh" ]; then
-        for f in /usr/share/doc/fzf/examples/key-bindings.zsh /usr/share/fzf/key-bindings.zsh /usr/share/fzf/shell/key-bindings.zsh ~/.fzf.zsh; do
-            [ -f "$f" ] && source "$f" && break
-        done
-        for f in /usr/share/doc/fzf/examples/completion.zsh /usr/share/fzf/completion.zsh /usr/share/fzf/shell/completion.zsh; do
-            [ -f "$f" ] && source "$f" && break
-        done
-    elif [ "$CURRENT_SHELL" = "bash" ]; then
-        for f in /usr/share/doc/fzf/examples/key-bindings.bash /usr/share/fzf/key-bindings.bash /usr/share/fzf/shell/key-bindings.bash ~/.fzf.bash; do
-            [ -f "$f" ] && source "$f" && break
-        done
-        for f in /usr/share/doc/fzf/examples/completion.bash /usr/share/fzf/completion.bash /usr/share/fzf/shell/completion.bash; do
-            [ -f "$f" ] && source "$f" && break
-        done
+# Nạp file cache khởi động đóng băng nếu có; fallback sang chạy động nếu chưa tạo cache
+if [ -f "$DOTFILES_DIR/themes/generated/init.bash" ]; then
+    source "$DOTFILES_DIR/themes/generated/init.bash"
+else
+    # Fallback: chạy trực tiếp các lệnh khởi tạo
+    if command -v fnm >/dev/null 2>&1; then
+        eval "$(fnm env --use-on-cd --shell $CURRENT_SHELL)"
+    fi
+
+    if command -v starship >/dev/null 2>&1; then
+        eval "$(starship init $CURRENT_SHELL)"
+    fi
+
+    if command -v fzf >/dev/null 2>&1; then
+        if [ "$CURRENT_SHELL" = "zsh" ]; then
+            for f in /usr/share/doc/fzf/examples/key-bindings.zsh /usr/share/fzf/key-bindings.zsh /usr/share/fzf/shell/key-bindings.zsh ~/.fzf.zsh; do
+                [ -f "$f" ] && source "$f" && break
+            done
+            for f in /usr/share/doc/fzf/examples/completion.zsh /usr/share/fzf/completion.zsh /usr/share/fzf/shell/completion.zsh; do
+                [ -f "$f" ] && source "$f" && break
+            done
+        elif [ "$CURRENT_SHELL" = "bash" ]; then
+            for f in /usr/share/doc/fzf/examples/key-bindings.bash /usr/share/fzf/key-bindings.bash /usr/share/fzf/shell/key-bindings.bash ~/.fzf.bash; do
+                [ -f "$f" ] && source "$f" && break
+            done
+            for f in /usr/share/doc/fzf/examples/completion.bash /usr/share/fzf/completion.bash /usr/share/fzf/shell/completion.bash; do
+                [ -f "$f" ] && source "$f" && break
+            done
+        fi
     fi
 fi
 
@@ -141,6 +147,6 @@ get_system_size() {
 # Load Themes
 if [ -f "$DOTFILES_DIR/themes/generated/theme.sh" ]; then
     source "$DOTFILES_DIR/themes/generated/theme.sh"
-elif [ -f "$HOME/Desktop/Work/dotfiles/themes/generated/theme.sh" ]; then
-    source "$HOME/Desktop/Work/dotfiles/themes/generated/theme.sh"
+elif [ -f "$HOME/.dotfiles/themes/generated/theme.sh" ]; then
+    source "$HOME/.dotfiles/themes/generated/theme.sh"
 fi

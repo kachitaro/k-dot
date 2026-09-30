@@ -8,7 +8,8 @@ pub const DOTFILES_DIR_ENV: &str = "DOTFILES_DIR";
 /// Check if a directory looks like the root of the dotfiles repository.
 pub fn is_dotfiles_root(path: &Path) -> bool {
     path.join("themes").is_dir()
-        && (path.join("scripts").is_dir()
+        && (path.join("apps").is_dir()
+            || path.join("scripts").is_dir()
             || path.join("bin").is_dir()
             || path.join(".git").exists()
             || path.join("dotfiles.md").exists()
@@ -18,7 +19,9 @@ pub fn is_dotfiles_root(path: &Path) -> bool {
 /// Find the dotfiles root directory by traversing upwards from an executable or file path.
 pub fn find_dotfiles_root_from(path: &Path) -> Result<PathBuf> {
     let mut current = if path.is_file() {
-        path.parent().map(Path::to_path_buf).unwrap_or_else(|| path.to_path_buf())
+        path.parent()
+            .map(Path::to_path_buf)
+            .unwrap_or_else(|| path.to_path_buf())
     } else {
         path.to_path_buf()
     };
@@ -57,7 +60,7 @@ pub fn strip_unc_prefix(path: PathBuf) -> PathBuf {
 }
 
 /// Resolve dotfiles directory safely across platforms and symlinks.
-/// 
+///
 /// 1. If DOTFILES_DIR environment variable is set and not empty, use it.
 /// 2. Otherwise, get current_exe() and canonicalize() to trace any symlinks to the real binary,
 ///    then walk up to find the dotfiles repository root.
@@ -67,13 +70,12 @@ pub fn resolve_dotfiles_dir() -> Result<PathBuf> {
         let trimmed = env_val.trim();
         if !trimmed.is_empty() {
             let path = PathBuf::from(trimmed);
-            if path.exists() {
-                let canonical = path
-                    .canonicalize()
-                    .with_context(|| format!("Failed to canonicalize {}='{}'", DOTFILES_DIR_ENV, trimmed))?;
+            if path.exists() && is_dotfiles_root(&path) {
+                let canonical = path.canonicalize().with_context(|| {
+                    format!("Failed to canonicalize {}='{}'", DOTFILES_DIR_ENV, trimmed)
+                })?;
                 return Ok(strip_unc_prefix(canonical));
             }
-            return Ok(strip_unc_prefix(path));
         }
     }
 
@@ -106,7 +108,7 @@ pub fn resolve_dotfiles_dir() -> Result<PathBuf> {
     // Fallback 2: Check default ~/.dotfiles
     if let Some(home) = dirs::home_dir() {
         let default_dotfiles = home.join(".dotfiles");
-        if is_dotfiles_root(&default_dotfiles) || default_dotfiles.is_dir() {
+        if is_dotfiles_root(&default_dotfiles) {
             if let Ok(canonical) = default_dotfiles.canonicalize() {
                 return Ok(strip_unc_prefix(canonical));
             }
@@ -135,14 +137,16 @@ pub struct AppTarget {
     pub is_dir: bool,
 }
 
-/// Dynamic auto-discovery of dotfiles packages (Stow-like dynamic scanning).
-/// Automatically detects any configuration folder in the repository and maps it
-/// to the proper OS destinations on Windows, macOS, and Linux.
+/// Dynamic auto-discovery of dotfiles packages in the apps/ directory (Stow-like dynamic scanning).
+/// Automatically detects any configuration folder/file in the apps/ folder and maps it
+/// directly into the ~/.config/ directory.
 pub fn discover_app_targets(dotfiles_dir: &Path) -> Vec<AppTarget> {
     let mut targets = Vec::new();
     let home_dir = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+    let config_dir = home_dir.join(".config");
 
-    let entries = match std::fs::read_dir(dotfiles_dir) {
+    let apps_dir = dotfiles_dir.join("apps");
+    let entries = match std::fs::read_dir(&apps_dir) {
         Ok(e) => e,
         Err(_) => return targets,
     };
@@ -151,160 +155,44 @@ pub fn discover_app_targets(dotfiles_dir: &Path) -> Vec<AppTarget> {
         ".git",
         ".github",
         "target",
-        "cli",
-        "assets",
-        "themes",
-        "scripts",
-        "bin",
-        "scratch",
         "node_modules",
         "tests",
         ".system_generated",
+        ".gitkeep",
+        ".DS_Store",
+        "shell",
+        "powershell",
     ];
-
-    #[cfg(windows)]
-    let config_dir = home_dir.join(".config");
-    #[cfg(windows)]
-    let local_appdata = dirs::data_local_dir().unwrap_or_else(|| home_dir.join("AppData").join("Local"));
-    #[cfg(windows)]
-    let roaming_appdata = dirs::config_dir().unwrap_or_else(|| home_dir.join("AppData").join("Roaming"));
-
-    #[cfg(unix)]
-    let config_dir = home_dir.join(".config");
 
     for entry in entries.flatten() {
         let path = entry.path();
-        if !path.is_dir() {
-            continue;
-        }
-
-        let folder_name = match path.file_name().and_then(|n| n.to_str()) {
-            Some(n) => n,
+        let name = match path.file_name().and_then(|n| n.to_str()) {
+            Some(n) => n.to_string(),
             None => continue,
         };
 
-        if ignored_names.contains(&folder_name) {
+        if ignored_names.contains(&name.as_str()) || name.starts_with('.') {
             continue;
         }
 
-        #[cfg(windows)]
-        {
-            match folder_name {
-                "nvim" => {
-                    targets.push(AppTarget {
-                        name: "nvim (LocalAppdata)".to_string(),
-                        src: path.clone(),
-                        dest: local_appdata.join("nvim"),
-                        is_dir: true,
-                    });
-                    targets.push(AppTarget {
-                        name: "nvim (.config)".to_string(),
-                        src: path.clone(),
-                        dest: config_dir.join("nvim"),
-                        is_dir: true,
-                    });
-                }
-                "bat" => {
-                    targets.push(AppTarget {
-                        name: "bat (AppData)".to_string(),
-                        src: path.clone(),
-                        dest: roaming_appdata.join("bat"),
-                        is_dir: true,
-                    });
-                    targets.push(AppTarget {
-                        name: "bat (.config)".to_string(),
-                        src: path.clone(),
-                        dest: config_dir.join("bat"),
-                        is_dir: true,
-                    });
-                }
-                "helix" => {
-                    targets.push(AppTarget {
-                        name: "helix (AppData)".to_string(),
-                        src: path.clone(),
-                        dest: roaming_appdata.join("helix"),
-                        is_dir: true,
-                    });
-                    targets.push(AppTarget {
-                        name: "helix (.config)".to_string(),
-                        src: path.clone(),
-                        dest: config_dir.join("helix"),
-                        is_dir: true,
-                    });
-                }
-                "wezterm" => {
-                    targets.push(AppTarget {
-                        name: "wezterm (.config)".to_string(),
-                        src: path.clone(),
-                        dest: config_dir.join("wezterm"),
-                        is_dir: true,
-                    });
-                    let wz_lua = path.join("wezterm.lua");
-                    if wz_lua.exists() {
-                        targets.push(AppTarget {
-                            name: "wezterm.lua (~/.wezterm.lua)".to_string(),
-                            src: wz_lua,
-                            dest: home_dir.join(".wezterm.lua"),
-                            is_dir: false,
-                        });
-                    }
-                }
-                "shell" => {
-                    // Shell profile scripts (bash/zsh) are injected directly into .bashrc / .zshrc
-                }
-                _ => {
-                    // Mọi thư mục khác (starship, atuin, carapace, powershell, scoop, git, lazygit, tmux, yazi...)
-                    // Tự động map vào ~/.config/<folder_name>
-                    targets.push(AppTarget {
-                        name: folder_name.to_string(),
-                        src: path.clone(),
-                        dest: config_dir.join(folder_name),
-                        is_dir: true,
-                    });
-                }
-            }
-        }
-
-        #[cfg(unix)]
-        {
-            match folder_name {
-                "wezterm" => {
-                    targets.push(AppTarget {
-                        name: "wezterm (.config)".to_string(),
-                        src: path.clone(),
-                        dest: config_dir.join("wezterm"),
-                        is_dir: true,
-                    });
-                    let wz_lua = path.join("wezterm.lua");
-                    if wz_lua.exists() {
-                        targets.push(AppTarget {
-                            name: "wezterm.lua (~/.wezterm.lua)".to_string(),
-                            src: wz_lua,
-                            dest: home_dir.join(".wezterm.lua"),
-                            is_dir: false,
-                        });
-                    }
-                }
-                "shell" => {
-                    // Handled by shell profile injector
-                }
-                _ => {
-                    targets.push(AppTarget {
-                        name: folder_name.to_string(),
-                        src: path.clone(),
-                        dest: config_dir.join(folder_name),
-                        is_dir: true,
-                    });
-                }
-            }
-        }
+        let is_dir = path.is_dir();
+        targets.push(AppTarget {
+            dest: config_dir.join(&name),
+            name,
+            src: path,
+            is_dir,
+        });
     }
 
     #[cfg(unix)]
     {
         // Link CLI binary if built
         let local_bin = home_dir.join(".local").join("bin");
-        let cli_bin = dotfiles_dir.join("cli").join("target").join("release").join("dot");
+        let cli_bin = dotfiles_dir
+            .join("cli")
+            .join("target")
+            .join("release")
+            .join("dot");
         if cli_bin.exists() {
             targets.push(AppTarget {
                 name: "dot (CLI binary)".to_string(),
@@ -317,8 +205,6 @@ pub fn discover_app_targets(dotfiles_dir: &Path) -> Vec<AppTarget> {
 
     targets
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -334,7 +220,11 @@ mod tests {
         fs::create_dir_all(root.join("scripts")).unwrap();
         fs::create_dir_all(root.join("target").join("release")).unwrap();
         fs::write(root.join("bin").join("dot"), b"fake binary").unwrap();
-        fs::write(root.join("target").join("release").join("dot"), b"fake binary").unwrap();
+        fs::write(
+            root.join("target").join("release").join("dot"),
+            b"fake binary",
+        )
+        .unwrap();
         dir
     }
 
@@ -354,7 +244,8 @@ mod tests {
 
         // 2. From <root>/target/release/dot
         let release_path = canonical_root.join("target").join("release").join("dot");
-        let resolved = find_dotfiles_root_from(&release_path).expect("Failed to resolve from target/release/dot");
+        let resolved = find_dotfiles_root_from(&release_path)
+            .expect("Failed to resolve from target/release/dot");
         assert_eq!(strip_unc_prefix(resolved), canonical_root);
     }
 
@@ -374,8 +265,11 @@ mod tests {
         let symlink_created = std::os::windows::fs::symlink_file(&real_bin, &symlink_path).is_ok();
 
         if symlink_created {
-            let canonical_exe = symlink_path.canonicalize().expect("Failed to canonicalize symlink");
-            let resolved = find_dotfiles_root_from(&canonical_exe).expect("Failed to resolve from symlinked executable");
+            let canonical_exe = symlink_path
+                .canonicalize()
+                .expect("Failed to canonicalize symlink");
+            let resolved = find_dotfiles_root_from(&canonical_exe)
+                .expect("Failed to resolve from symlinked executable");
             assert_eq!(strip_unc_prefix(resolved), canonical_root);
         }
     }
@@ -414,10 +308,10 @@ mod tests {
         let fake_repo = setup_fake_dotfiles_repo();
         let root = fake_repo.path();
 
-        // Create sample configs in fake repo
-        fs::create_dir_all(root.join("bat")).unwrap();
-        fs::create_dir_all(root.join("starship")).unwrap();
-        fs::create_dir_all(root.join("custom_app")).unwrap();
+        // Create sample configs in apps/ of fake repo
+        fs::create_dir_all(root.join("apps").join("bat")).unwrap();
+        fs::create_dir_all(root.join("apps").join("starship")).unwrap();
+        fs::create_dir_all(root.join("apps").join("custom_app")).unwrap();
 
         let targets = discover_app_targets(root);
         let names: Vec<String> = targets.iter().map(|t| t.name.clone()).collect();
@@ -425,6 +319,13 @@ mod tests {
         assert!(names.iter().any(|n| n.contains("bat")));
         assert!(names.iter().any(|n| n.contains("starship")));
         assert!(names.iter().any(|n| n == "custom_app"));
+
+        let home_config = dirs::home_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join(".config");
+        for target in &targets {
+            assert!(target.src.starts_with(root.join("apps")));
+            assert_eq!(target.dest, home_config.join(&target.name));
+        }
     }
 }
-

@@ -22,12 +22,38 @@ Thiết lập lại toàn bộ môi trường lập trình của bạn trên **W
 ## 📑 Mục lục
 
 - [📸 Hình ảnh giao diện](#-hình-ảnh-giao-diện)
+- [📁 Cấu trúc thư mục](#-cấu-trúc-thư-mục)
 - [🚀 Hướng dẫn cài đặt](#-hướng-dẫn-cài-đặt)
+- [🔄 Hướng dẫn nâng cấp (Migration Guide)](#-hướng-dẫn-nâng-cấp-migration-guide)
 - [🧰 Quản lý bằng CLI `dot`](#-quản-lý-bằng-cli-dot-rust)
-- [🎨 Theme Engine (Đồng bộ màu sắc)](#-theme-engine-đồng-bộ-màu-sắc)
+- [🎨 Theme Engine (Đồng bộ màu sắc)](#-theme-engine--shell-cache-đồng-bộ-màu-sắc--khởi-động-tức-thì)
 - [⌨️ Phím tắt & Tiện ích](#️-phím-tắt--tiện-ích)
 - [☕ Ủng hộ / Donate](#-ủng-hộ--donate)
 - [📜 Giấy phép](#-giấy-phép)
+
+---
+
+## 📁 Cấu trúc thư mục
+
+```
+dotfiles/
+├── apps/                    # 📦 Cấu hình các ứng dụng (Được CLI 'dot' tự động quét và map)
+│   ├── atuin/               # Đồng bộ & tìm kiếm lịch sử lệnh shell
+│   ├── bat/                 # Xem nội dung tệp có highlight cú pháp
+│   ├── nvim/                # Cấu hình Neovim IDE (NvChad)
+│   ├── powershell/          # Profile & hàm tiện ích PowerShell 7
+│   ├── scoop/               # Cấu hình trình quản lý gói Scoop
+│   ├── shell/               # POSIX Shell profiles (.bashrc, .zshrc)
+│   ├── starship/            # Prompt thanh trạng thái cross-shell
+│   └── wezterm/             # Terminal emulator WezTerm
+├── cli/                     # 🦀 CLI quản lý viết bằng Rust ('dot' / 'k-dot')
+├── themes/                  # 🎨 Single-source-of-truth Theme Engine
+│   ├── theme.json           # Bảng màu cấu hình (Catppuccin Mocha)
+│   └── generated/           # Theme đã biên dịch & script cache shell tĩnh
+├── install.ps1              # Script cài đặt tự động cho Windows
+├── install.sh               # Script cài đặt tự động cho Linux/macOS
+└── README.vi.md             # Tài liệu hướng dẫn
+```
 
 ---
 
@@ -79,6 +105,26 @@ curl -fsSL https://raw.githubusercontent.com/kachitaro/dotfiles/main/install.sh 
 
 ---
 
+## 🔄 Hướng dẫn nâng cấp (Migration Guide)
+
+Nếu bạn đã cài đặt dotfiles trước đó với cấu trúc thư mục cũ ở gốc repo, hãy thực hiện các bước sau để chuyển đổi an toàn sang cấu trúc `apps/` mới:
+
+```bash
+# 1. Gỡ bỏ toàn bộ symlink cũ đang trỏ vào gốc repo
+dot eject
+
+# 2. Kéo cập nhật mới nhất chứa cấu trúc thư mục apps/
+git pull
+
+# 3. (Nếu dùng binary CLI) Cập nhật binary dot lên bản mới
+dot update
+
+# 4. Tạo lại symlink đồng bộ theo cấu trúc apps/ mới
+dot inject --force
+```
+
+---
+
 ## 🧰 Quản lý bằng CLI `dot` (Rust)
 
 Công cụ dòng lệnh quản lý (`k-dot` / `dot`) được viết hoàn toàn bằng **Rust** cho tốc độ khởi động siêu nhanh, xử lý đường dẫn / symlink an toàn và không phụ thuộc runtime bên ngoài.
@@ -87,7 +133,7 @@ Công cụ dòng lệnh quản lý (`k-dot` / `dot`) được viết hoàn toàn
 dot init [path]                  # Khởi tạo kho dotfiles độc lập (mặc định ~/.dotfiles) kèm theme.json mẫu
 dot install                      # Chạy script cài đặt hệ thống (Tùy chọn: --force / -ForceInstall)
 dot update                       # Tự động cập nhật CLI binary (dot) lên phiên bản mới nhất từ GitHub Release
-dot add <path>                   # Thu nạp một config từ ~/.config vào kho (vd: dot add ~/.config/alacritty)
+dot add <path>                   # Thu nạp một config vào thư mục apps/ trong kho (vd: dot add ~/.config/alacritty)
 dot eject                        # Gỡ symlink, trả file thực về máy (hoạt động độc lập)
 dot inject                       # Đồng bộ / gắn lại symlink và nạp cấu hình dotfiles vào hệ thống (Tùy chọn: --force)
 dot uninstall                    # Gỡ cài đặt hoàn toàn
@@ -112,18 +158,20 @@ cargo build --release
 
 ---
 
-## 🎨 Theme Engine (Đồng bộ màu sắc)
+## 🎨 Theme Engine & Shell Cache (Đồng bộ màu sắc & Khởi động tức thì)
 
 Toàn bộ màu sắc của Neovim, WezTerm, Starship, Bash, Zsh và PowerShell được đồng bộ từ **một nguồn sự thật duy nhất**: `themes/theme.json`.
 
 1. Sửa màu trong `themes/theme.json`.
-2. Chạy `dot theme reload`.
-3. Rust Theme Engine tự động biên dịch JSON trực tiếp ra:
+2. Chạy `dot theme reload` (hoặc `dot inject`).
+3. Rust Theme Engine tự động biên dịch JSON và đóng băng output khởi tạo shell trực tiếp ra:
    - `themes/generated/theme.lua` (WezTerm & Neovim)
    - `themes/generated/theme.sh` (Bash & Zsh)
    - `themes/generated/theme.ps1` (PowerShell)
-   - `atuin/themes/theme.toml` (Atuin Shell History)
-4. WezTerm, Neovim và Shell tự động nhận diện vị trí dotfiles động và áp dụng màu mới ngay lập tức.
+   - `themes/generated/init.zsh` / `init.bash` / `init.ps1` (Script khởi tạo tĩnh giúp shell mở tức thì)
+   - `apps/atuin/themes/theme.toml` (Atuin Shell History)
+   - `apps/starship/starship.toml` (Bảng màu Starship Prompt)
+4. WezTerm, Neovim và Shell tự động nhận diện vị trí dotfiles động, áp dụng màu mới ngay lập tức và tối ưu triệt để tốc độ mở terminal nhờ loại bỏ các tiến trình con `eval`.
 
 Theme mặc định hiện tại: **Catppuccin Mocha**.
 
@@ -144,7 +192,6 @@ Theme mặc định hiện tại: **Catppuccin Mocha**.
 | :--------------------- | :------------------------------------------------------------------------------- |
 | `Ctrl + R`             | **Atuin** tìm kiếm lịch sử lệnh tương tác (kèm thời lượng chạy, exit code, ngày) |
 | `Ctrl + F`             | **PSFzf / FZF** tìm kiếm tệp và thư mục siêu nhanh                               |
-| `Tab`                  | **Carapace** menu auto-complete trực quan đa shell                               |
 | `z <thư_mục>`          | **Zoxide** nhảy nhanh đến thư mục thường xuyên sử dụng                           |
 | `g`                    | Phím tắt nhanh cho `git`                                                         |
 | `ls`, `ll`, `la`, `lt` | **Eza** liệt kê tệp hiện đại (kèm icon, trạng thái git, cây thư mục)             |
