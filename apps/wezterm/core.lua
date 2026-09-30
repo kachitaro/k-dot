@@ -83,6 +83,7 @@ function module.setup(config)
   config.window_decorations = "RESIZE"
   config.default_cursor_style = 'BlinkingBar'
   config.automatically_reload_config = true
+  config.enable_csi_u_key_encoding = true
 
   config.color_scheme = 'catppuccin-frappe'
   config.colors = {
@@ -99,6 +100,11 @@ function module.setup(config)
       key = 'd',
       mods = 'CTRL|SHIFT',
       action = act.SplitVertical { domain = 'CurrentPaneDomain' },
+    },
+    {
+      key = 'P',
+      mods = 'CTRL|SHIFT',
+      action = act.DisableDefaultAssignment,
     },
     {
       key = 'p',

@@ -21,6 +21,7 @@ map("n", "<F2>", function() vim.lsp.buf.rename() end, { desc = "LSP Rename" })
 map({ "n", "i", "v" }, "<C-s>", "<cmd>w<CR>", { desc = "Lưu file" })
 map("n", "<C-p>", "<cmd>Telescope find_files<CR>", { desc = "Mở nhanh file" })
 map("n", "<C-S-p>", "<cmd>Telescope commands<CR>", { desc = "Command Palette" })
+map("n", "<C-S-P>", "<cmd>Telescope commands<CR>", { desc = "Command Palette" })
 map({ "n", "t" }, "<C-`>", function()
   require("nvchad.term").toggle { pos = "sp", id = "htoggle", size = 0.3 }
 end, { desc = "Bật/Tắt Terminal" })
