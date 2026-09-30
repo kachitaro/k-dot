@@ -16,3 +16,16 @@ map("n", "<F11>", function() require("dap").step_into() end, { desc = "Debug: St
 map("n", "<F6>", function() require("dapui").toggle() end, { desc = "Debug: Toggle UI" })
 
 map("n", "<F2>", function() vim.lsp.buf.rename() end, { desc = "LSP Rename" })
+
+-- VS Code Style Mappings
+map({ "n", "i", "v" }, "<C-s>", "<cmd>w<CR>", { desc = "Lưu file" })
+map("n", "<C-p>", "<cmd>Telescope find_files<CR>", { desc = "Mở nhanh file" })
+map("n", "<C-S-p>", "<cmd>Telescope commands<CR>", { desc = "Command Palette" })
+map({ "n", "t" }, "<C-`>", function()
+  require("nvchad.term").toggle { pos = "sp", id = "htoggle", size = 0.3 }
+end, { desc = "Bật/Tắt Terminal" })
+
+map("n", "<A-Down>", "<cmd>m .+1<CR>==", { desc = "Chuyển dòng xuống" })
+map("n", "<A-Up>", "<cmd>m .-2<CR>==", { desc = "Chuyển dòng lên" })
+map("v", "<A-Down>", ":m '>+1<CR>gv=gv", { desc = "Chuyển khối dòng xuống" })
+map("v", "<A-Up>", ":m '<-2<CR>gv=gv", { desc = "Chuyển khối dòng lên" })

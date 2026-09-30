@@ -99,7 +99,12 @@ function module.setup(config)
       key = 'd',
       mods = 'CTRL|SHIFT',
       action = act.SplitVertical { domain = 'CurrentPaneDomain' },
-    }
+    },
+    {
+      key = 'p',
+      mods = 'CTRL|SHIFT',
+      action = act.DisableDefaultAssignment,
+    },
   }
 end
 
