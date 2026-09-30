@@ -50,4 +50,18 @@ return {
     branch = "master",
     event = "VeryLazy",
   },
+  {
+    "keaising/im-select.nvim",
+    event = "InsertEnter",
+    config = function()
+      require("im_select").setup({
+        -- Mã bộ gõ Tiếng Anh mặc định của IBus
+        default_im_select = "xkb:us::eng",
+
+        -- Tự động trả về Tiếng Anh khi thoát Insert Mode hoặc chuyển cửa sổ
+        set_default_events = { "VimEnter", "FocusGained", "InsertLeave", "CmdlineLeave" },
+        set_previous_events = { "InsertEnter" },
+      })
+    end,
+  },
 }
