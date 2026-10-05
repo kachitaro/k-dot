@@ -2,13 +2,13 @@
 # Do not edit manually - regenerate with 'dot inject' or 'dot theme reload'
 
 # --- starship init ---
-Invoke-Expression (& 'C:\Users\JohnN\scoop\apps\starship\current\starship.exe' init powershell --print-full-init | Out-String)
+Invoke-Expression (& '/usr/local/bin/starship' init powershell --print-full-init | Out-String)
 
 # --- fnm init ---
-$env:PATH = "C:\Users\JohnN\AppData\Local\fnm_multishells\12992_1787837640186;D:\work\dotfiles\cli\target\debug\deps;D:\work\dotfiles\cli\target\debug;C:\Users\JohnN\scoop\persist\rustup\.rustup\toolchains\stable-x86_64-pc-windows-gnu\lib\rustlib\x86_64-pc-windows-gnu\lib;C:\Users\JohnN\scoop\persist\rustup\.cargo\bin;C:\Users\JohnN\AppData\Local\fnm_multishells\4788_1787837627754;C:\Users\JohnN\scoop\apps\pwsh\current;C:/Users/JohnN/.gemini/antigravity-cli/bin;C:\Users\JohnN\.local\bin;C:\Users\JohnN\scoop\apps\pwsh\current;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\dotnet\;C:\Users\JohnN\scoop\apps\flutter\current\bin;C:\Program Files (x86)\cloudflared\;;C:\Users\JohnN\AppData\Local\Programs\Herdr\bin;D:\work\dotfiles\bin;C:\Users\JohnN\scoop\apps\vscode\current\bin;C:\Users\JohnN\scoop\apps\starship\current;C:\Users\JohnN\scoop\apps\flutter\current\bin;C:\Users\JohnN\scoop\apps\gcc\current\bin;C:\Users\JohnN\AppData\Local\agy\bin;C:\Users\JohnN\scoop\apps\rustup\current\.cargo\bin;C:\Users\JohnN\scoop\apps\python\current\Scripts;C:\Users\JohnN\scoop\apps\python\current;C:\Users\JohnN\AppData\Local\Android\Sdk\emulator;C:\Users\JohnN\AppData\Local\Android\Sdk\platforms;C:\Users\JohnN\AppData\Local\Android\Sdk\platform-tools;C:\Users\JohnN\scoop\shims;C:\Users\JohnN\AppData\Local\Microsoft\WindowsApps;C:\Users\JohnN\.dotnet\tools;C:\msys64\mingw64\bin;C:\Users\JohnN\AppData\Local\Microsoft\WinGet\Links;C:\Program Files\Git\bin\bash.exe;C:\Program Files\Sublime Text\;C:\Users\JohnN\AppData\Local\agy\bin;C:\Users\JohnN\AppData\Local\Programs\Ollama;C:\Users\JohnN\AppData\Local\tglow;C:\Users\JohnN\scoop\persist\rustup\.rustup\toolchains\stable-x86_64-pc-windows-gnu\bin"
-$env:FNM_MULTISHELL_PATH = "C:\Users\JohnN\AppData\Local\fnm_multishells\12992_1787837640186"
+$env:PATH = "/run/user/1000/fnm_multishells/98894_1790833038259/bin:/home/john/.local/share/nvim/mason/bin:/home/john/.local/share/fnm/node-versions/v22.23.2/installation/bin:/run/user/1000/fnm_multishells/9527_1790820803080/bin:/home/john/.local/share/fnm:/home/john/.bun/bin:/home/john/.local/bin:/run/user/1000/fnm_multishells/9499_1790820803049/bin:/home/john/.bun/bin:/home/john/.local/bin:/home/john/.local/share/nvim/mason/bin:/home/john/.local/share/fnm/node-versions/v22.23.2/installation/bin:/run/user/1000/fnm_multishells/9162_1790820796899/bin:/home/john/.local/share/fnm:/home/john/.bun/bin:/home/john/.local/bin:/home/john/.atuin/bin:/home/john/.bun/bin:/home/john/.local/bin:/home/john/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin"
+$env:FNM_MULTISHELL_PATH = "/run/user/1000/fnm_multishells/98894_1790833038259"
 $env:FNM_VERSION_FILE_STRATEGY = "local"
-$env:FNM_DIR = "C:\Users\JohnN\scoop\apps\fnm\current"
+$env:FNM_DIR = "/home/john/.local/share/fnm"
 $env:FNM_LOGLEVEL = "info"
 $env:FNM_NODE_DIST_MIRROR = "https://nodejs.org/dist"
 $env:FNM_COREPACK_ENABLED = "false"
@@ -19,6 +19,7 @@ function global:Set-FnmOnLoad { If ((Test-Path .nvmrc) -Or (Test-Path .node-vers
 function global:Set-LocationWithFnm { param($path); if ($path -eq $null) {Set-Location} else {Set-Location $path}; Set-FnmOnLoad }
 Set-Alias -Scope global cd_with_fnm Set-LocationWithFnm
 Set-Alias -Option AllScope -Scope global cd Set-LocationWithFnm
+Set-FnmOnLoad
 
 
 # --- zoxide init ---
@@ -41,7 +42,7 @@ function global:__zoxide_bin {
 
 # pwd based on zoxide's format.
 function global:__zoxide_pwd {
-    $cwd = Microsoft.PowerShell.Management\Get-Location
+    $cwd = Get-Location
     if ($cwd.Provider.Name -eq "FileSystem") {
         $cwd.ProviderPath
     }
@@ -50,20 +51,16 @@ function global:__zoxide_pwd {
 # cd + custom logic based on the value of _ZO_ECHO.
 function global:__zoxide_cd($dir, $literal) {
     $dir = if ($literal) {
-        if ($null -eq $dir) {
-            Microsoft.PowerShell.Management\Set-Location
-        } else {
-            Microsoft.PowerShell.Management\Set-Location -LiteralPath $dir -Passthru -ErrorAction Stop
-        }
+        Set-Location -LiteralPath $dir -Passthru -ErrorAction Stop
     } else {
         if ($dir -eq '-' -and ($PSVersionTable.PSVersion -lt 6.1)) {
-            Microsoft.PowerShell.Utility\Write-Error "cd - is not supported below PowerShell 6.1. Please upgrade your version of PowerShell."
+            Write-Error "cd - is not supported below PowerShell 6.1. Please upgrade your version of PowerShell."
         }
         elseif ($dir -eq '+' -and ($PSVersionTable.PSVersion -lt 6.2)) {
-            Microsoft.PowerShell.Utility\Write-Error "cd + is not supported below PowerShell 6.2. Please upgrade your version of PowerShell."
+            Write-Error "cd + is not supported below PowerShell 6.2. Please upgrade your version of PowerShell."
         }
         else {
-            Microsoft.PowerShell.Management\Set-Location -Path $dir -Passthru -ErrorAction Stop
+            Set-Location -Path $dir -Passthru -ErrorAction Stop
         }
     }
 }
@@ -86,7 +83,7 @@ function global:__zoxide_hook {
 }
 
 # Initialize hook.
-$global:__zoxide_hooked = (Microsoft.PowerShell.Utility\Get-Variable __zoxide_hooked -ErrorAction Ignore -ValueOnly)
+$global:__zoxide_hooked = (Get-Variable __zoxide_hooked -ErrorAction Ignore -ValueOnly)
 if ($global:__zoxide_hooked -ne 1) {
     $global:__zoxide_hooked = 1
     $global:__zoxide_prompt_old = $function:prompt
@@ -107,15 +104,15 @@ if ($global:__zoxide_hooked -ne 1) {
 # Jump to a directory using only keywords.
 function global:__zoxide_z {
     if ($args.Length -eq 0) {
-        __zoxide_cd $null $true
+        __zoxide_cd ~ $true
     }
     elseif ($args.Length -eq 1 -and ($args[0] -eq '-' -or $args[0] -eq '+')) {
         __zoxide_cd $args[0] $false
     }
-    elseif ($args.Length -eq 1 -and (Microsoft.PowerShell.Management\Test-Path -PathType Container -LiteralPath $args[0])) {
+    elseif ($args.Length -eq 1 -and (Test-Path -PathType Container -LiteralPath $args[0])) {
         __zoxide_cd $args[0] $true
     }
-    elseif ($args.Length -eq 1 -and (Microsoft.PowerShell.Management\Test-Path -PathType Container -Path $args[0] )) {
+    elseif ($args.Length -eq 1 -and (Test-Path -PathType Container -Path $args[0] )) {
         __zoxide_cd $args[0] $false
     }
     else {
@@ -145,8 +142,8 @@ function global:__zoxide_zi {
 # Commands for zoxide. Disable these using --no-cmd.
 #
 
-Microsoft.PowerShell.Utility\Set-Alias -Name z -Value __zoxide_z -Option AllScope -Scope Global -Force
-Microsoft.PowerShell.Utility\Set-Alias -Name zi -Value __zoxide_zi -Option AllScope -Scope Global -Force
+Set-Alias -Name z -Value __zoxide_z -Option AllScope -Scope Global -Force
+Set-Alias -Name zi -Value __zoxide_zi -Option AllScope -Scope Global -Force
 
 # =============================================================================
 #

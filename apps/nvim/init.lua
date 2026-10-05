@@ -40,19 +40,28 @@ end)
 local uv = vim.uv or vim.loop
 local home = os.getenv("HOME") or os.getenv("USERPROFILE") or ""
 local candidates = {}
-
--- 1. Thử lấy từ biến môi trường
+-- 1. Thử lấy từ biến môi trường (nếu có và hợp lệ)
 local env_dotfiles = os.getenv("DOTFILES_DIR")
-if env_dotfiles and env_dotfiles ~= "" then
+if env_dotfiles and env_dotfiles ~= "" and env_dotfiles ~= "/home" then
   table.insert(candidates, env_dotfiles .. "/themes/generated/theme.lua")
 end
 
--- 2. Fallback paths
+-- 2. Thử truy ngược từ đường dẫn thật của cấu hình nvim (hỗ trợ symlink)
+local nvim_conf = vim.fn.stdpath("config")
+local real_nvim_conf = uv.fs_realpath(nvim_conf)
+if real_nvim_conf then
+  local root = vim.fs.dirname(vim.fs.dirname(real_nvim_conf))
+  if root and root ~= "" then
+    table.insert(candidates, root .. "/themes/generated/theme.lua")
+  end
+end
+
+-- 3. Fallback paths
 if home ~= "" then
+  table.insert(candidates, home .. "/Desktop/Work/dotfiles/themes/generated/theme.lua")
   table.insert(candidates, home .. "/.dotfiles/themes/generated/theme.lua")
   table.insert(candidates, home .. "/.config/themes/generated/theme.lua")
 end
-
 -- Tìm file theme hợp lệ
 local theme_path = nil
 for _, path in ipairs(candidates) do
