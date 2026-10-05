@@ -83,11 +83,10 @@ function module.setup(config)
   config.window_decorations = "RESIZE"
   config.default_cursor_style = 'BlinkingBar'
   config.automatically_reload_config = true
+  config.enable_csi_u_key_encoding = true
 
-  config.color_scheme = 'catppuccin-frappe'
-  config.colors = {
-    compose_cursor = '#303446'
-  }
+  -- config.color_scheme is handled dynamically in ui.lua
+  config.use_ime = false
 
   config.keys = {
     {
@@ -99,7 +98,37 @@ function module.setup(config)
       key = 'd',
       mods = 'CTRL|SHIFT',
       action = act.SplitVertical { domain = 'CurrentPaneDomain' },
-    }
+    },
+    {
+      key = 'P',
+      mods = 'CTRL|SHIFT',
+      action = act.DisableDefaultAssignment,
+    },
+    {
+      key = 'p',
+      mods = 'CTRL|SHIFT',
+      action = act.DisableDefaultAssignment,
+    },
+    {
+      key = 'LeftArrow',
+      mods = 'CTRL|SHIFT',
+      action = act.SendKey { key = 'LeftArrow', mods = 'CTRL|SHIFT' },
+    },
+    {
+      key = 'RightArrow',
+      mods = 'CTRL|SHIFT',
+      action = act.SendKey { key = 'RightArrow', mods = 'CTRL|SHIFT' },
+    },
+    {
+      key = 'UpArrow',
+      mods = 'CTRL|SHIFT',
+      action = act.SendKey { key = 'UpArrow', mods = 'CTRL|SHIFT' },
+    },
+    {
+      key = 'DownArrow',
+      mods = 'CTRL|SHIFT',
+      action = act.SendKey { key = 'DownArrow', mods = 'CTRL|SHIFT' },
+    },
   }
 end
 

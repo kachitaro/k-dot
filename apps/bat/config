@@ -3,7 +3,7 @@
 # ==============================================================================
 
 # Theme đồng bộ tự động từ theme.json (dot theme reload)
---theme="Catppuccin Mocha"
+--theme="VS Code Dark Modern"
 
 # Hiển thị số dòng, git modifications và header gọn gàng
 --style="numbers,changes,header"

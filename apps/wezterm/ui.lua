@@ -3,30 +3,38 @@ local module = {}
 
 local function get_theme_path()
   local candidates = {}
+  local is_windows = wezterm.target_triple:find("windows") ~= nil
 
   -- 1. Check DOTFILES_DIR environment variable
   local dotfiles_dir = os.getenv("DOTFILES_DIR")
-  if dotfiles_dir and dotfiles_dir ~= "" then
+  if dotfiles_dir and dotfiles_dir ~= "" and dotfiles_dir ~= "/home" then
     table.insert(candidates, dotfiles_dir .. "/themes/generated/theme.lua")
   end
 
-  -- 2. Resolve via wezterm.config_dir
-  if wezterm.config_dir then
-    table.insert(candidates, wezterm.config_dir .. "/../themes/generated/theme.lua")
-    table.insert(candidates, wezterm.config_dir .. "/themes/generated/theme.lua")
-  end
-
-  -- 3. Resolve via wezterm.config_file (if available)
-  if wezterm.config_file then
-    local config_dir = wezterm.config_file:match("^(.*)[/\\]")
-    if config_dir then
-      table.insert(candidates, config_dir .. "/../themes/generated/theme.lua")
+  -- 2. Resolve via canonical/realpath of config_dir (handles symlinks)
+  local cfg_dir = wezterm.config_dir
+  if cfg_dir then
+    if not is_windows then
+      local h = io.popen('readlink -f "' .. cfg_dir .. '" 2>/dev/null')
+      if h then
+        local real = h:read("*l")
+        h:close()
+        if real and real ~= "" then
+          local root = real:gsub("/apps/wezterm/?$", "")
+          if root and root ~= "" and root ~= real then
+            table.insert(candidates, root .. "/themes/generated/theme.lua")
+          end
+        end
+      end
     end
+    table.insert(candidates, cfg_dir .. "/../themes/generated/theme.lua")
+    table.insert(candidates, cfg_dir .. "/themes/generated/theme.lua")
   end
 
-  -- 4. Fallback paths (home directory)
+  -- 3. Fallback paths (home directory)
   local home = os.getenv("HOME") or os.getenv("USERPROFILE") or (wezterm.home_dir or "")
   if home ~= "" then
+    table.insert(candidates, home .. "/Desktop/Work/dotfiles/themes/generated/theme.lua")
     table.insert(candidates, home .. "/.dotfiles/themes/generated/theme.lua")
     table.insert(candidates, home .. "/.config/themes/generated/theme.lua")
   end

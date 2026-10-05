@@ -11,7 +11,7 @@
 
 # pwd based on the value of _ZO_RESOLVE_SYMLINKS.
 function __zoxide_pwd() {
-    \command cygpath -w "\builtin pwd -L"
+    \builtin pwd -L
 }
 
 # cd + custom logic based on the value of _ZO_ECHO.
@@ -43,7 +43,6 @@ chpwd_functions+=(__zoxide_hook)
 # Report common issues.
 function __zoxide_doctor() {
     [[ ${_ZO_DOCTOR:-1} -ne 0 ]] || return 0
-    [[ $- == *i* ]] || return 0
     [[ ${chpwd_functions[(Ie)__zoxide_hook]:-} -eq 0 ]] || return 0
 
     _ZO_DOCTOR=0
@@ -68,9 +67,7 @@ function __zoxide_z() {
     __zoxide_doctor
     if [[ "$#" -eq 0 ]]; then
         __zoxide_cd ~
-    elif [[ "$#" -eq 1 ]] && [[ "$1" = '-' ]]; then
-        __zoxide_cd "${OLDPWD}"
-    elif [[ "$#" -eq 1 ]] && { [[ "$1" =~ ^[-+][0-9]+$ ]] || (\builtin cd -q -- "$1") &>/dev/null; }; then
+    elif [[ "$#" -eq 1 ]] && { [[ -d "$1" ]] || [[ "$1" = '-' ]] || [[ "$1" =~ ^[-+][0-9]$ ]]; }; then
         __zoxide_cd "$1"
     elif [[ "$#" -eq 2 ]] && [[ "$1" = "--" ]]; then
         __zoxide_cd "$2"
@@ -117,10 +114,10 @@ if [[ -o zle ]]; then
         elif [[ "${words[-1]}" == '' ]]; then
             # Show completions for Space-Tab.
             # shellcheck disable=SC2086
-            __zoxide_result="$(\command zoxide query --exclude "$(__zoxide_pwd || \builtin true)" --interactive -- ${words[2,-1]} 2>/dev/null)" || __zoxide_result=''
+            __zoxide_result="$(\command zoxide query --exclude "$(__zoxide_pwd || \builtin true)" --interactive -- ${words[2,-1]})" || __zoxide_result=''
 
             # Set a result to ensure completion doesn't re-run
-            compadd -Q -S "" -- ""
+            compadd -Q ""
 
             # Bind '\e[0n' to helper function.
             \builtin bindkey '\e[0n' '__zoxide_z_complete_helper'
@@ -478,10 +475,10 @@ zle -N self-atuin-ai-question-mark
 bindkey '?' self-atuin-ai-question-mark # Question mark
 
 # --- fnm init ---
-export PATH="C:\\Users\\JohnN\\AppData\\Local\\fnm_multishells\\16200_1787837639774":$PATH
-export FNM_MULTISHELL_PATH="C:\\Users\\JohnN\\AppData\\Local\\fnm_multishells\\16200_1787837639774"
+export PATH="/run/user/1000/fnm_multishells/98851_1790833038242/bin":$PATH
+export FNM_MULTISHELL_PATH="/run/user/1000/fnm_multishells/98851_1790833038242"
 export FNM_VERSION_FILE_STRATEGY="local"
-export FNM_DIR="C:\\Users\\JohnN\\scoop\\apps\\fnm\\current"
+export FNM_DIR="/home/john/.local/share/fnm"
 export FNM_LOGLEVEL="info"
 export FNM_NODE_DIST_MIRROR="https://nodejs.org/dist"
 export FNM_COREPACK_ENABLED="false"
@@ -495,8 +492,8 @@ fi
 
 }
 
-add-zsh-hook -D chpwd _fnm_autoload_hook
-add-zsh-hook chpwd _fnm_autoload_hook
+add-zsh-hook chpwd _fnm_autoload_hook \
+    && _fnm_autoload_hook
 
 rehash
 
@@ -1168,7 +1165,7 @@ zmodload zsh/parameter  # Needed to access jobstates variable for STARSHIP_JOBS_
 if [[ $ZSH_VERSION == ([1-4]*) ]]; then
     # ZSH <= 5; Does not have a built-in variable so we will rely on Starship's inbuilt time function.
     __starship_get_time() {
-        STARSHIP_CAPTURED_TIME=$('C:\Users\JohnN\scoop\apps\starship\current\starship.exe' time)
+        STARSHIP_CAPTURED_TIME=$(/usr/local/bin/starship time)
     }
 else
     zmodload zsh/datetime
@@ -1252,7 +1249,7 @@ VIRTUAL_ENV_DISABLE_PROMPT=1
 
 setopt promptsubst
 
-PROMPT='$(''C:\Users\JohnN\scoop\apps\starship\current\starship.exe'' prompt --terminal-width="$COLUMNS" --keymap="${KEYMAP:-}" --status="${STARSHIP_CMD_STATUS:-}" --pipestatus="${STARSHIP_PIPE_STATUS[*]:-}" --cmd-duration="${STARSHIP_DURATION:-}" --jobs="$STARSHIP_JOBS_COUNT")'
-RPROMPT='$(''C:\Users\JohnN\scoop\apps\starship\current\starship.exe'' prompt --right --terminal-width="$COLUMNS" --keymap="${KEYMAP:-}" --status="${STARSHIP_CMD_STATUS:-}" --pipestatus="${STARSHIP_PIPE_STATUS[*]:-}" --cmd-duration="${STARSHIP_DURATION:-}" --jobs="$STARSHIP_JOBS_COUNT")'
-PROMPT2="$('C:\Users\JohnN\scoop\apps\starship\current\starship.exe' prompt --continuation)"
+PROMPT='$('/usr/local/bin/starship' prompt --terminal-width="$COLUMNS" --keymap="${KEYMAP:-}" --status="${STARSHIP_CMD_STATUS:-}" --pipestatus="${STARSHIP_PIPE_STATUS[*]:-}" --cmd-duration="${STARSHIP_DURATION:-}" --jobs="$STARSHIP_JOBS_COUNT")'
+RPROMPT='$('/usr/local/bin/starship' prompt --right --terminal-width="$COLUMNS" --keymap="${KEYMAP:-}" --status="${STARSHIP_CMD_STATUS:-}" --pipestatus="${STARSHIP_PIPE_STATUS[*]:-}" --cmd-duration="${STARSHIP_DURATION:-}" --jobs="$STARSHIP_JOBS_COUNT")'
+PROMPT2="$(/usr/local/bin/starship prompt --continuation)"
 
