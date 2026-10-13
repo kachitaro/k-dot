@@ -61,7 +61,7 @@ function module.setup(config)
     weight = 'Regular',
     style  = 'Normal',
   })
-  config.font_size = 10.5
+  config.font_size = 9.0
   config.font_rules = {
     {
       italic = true,
@@ -83,11 +83,9 @@ function module.setup(config)
   config.window_decorations = "RESIZE"
   config.default_cursor_style = 'BlinkingBar'
   config.automatically_reload_config = true
+  config.enable_csi_u_key_encoding = true
 
-  config.color_scheme = 'catppuccin-frappe'
-  config.colors = {
-    compose_cursor = '#303446'
-  }
+  config.use_ime = false
 
   config.keys = {
     {
@@ -99,6 +97,16 @@ function module.setup(config)
       key = 'd',
       mods = 'CTRL|SHIFT',
       action = act.SplitVertical { domain = 'CurrentPaneDomain' },
+    },
+    {
+      key = 'P',
+      mods = 'CTRL|SHIFT',
+      action = act.DisableDefaultAssignment,
+    },
+    {
+      key = 'p',
+      mods = 'CTRL|SHIFT',
+      action = act.DisableDefaultAssignment,
     }
   }
 end

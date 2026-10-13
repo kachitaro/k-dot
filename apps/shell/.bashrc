@@ -25,9 +25,9 @@ export BAT_CONFIG_DIR="$HOME/.config/bat"
 export BAT_CONFIG_PATH="$HOME/.config/bat/config"
 
 # Dotfiles Directory Logic
-if [ -z "$DOTFILES_DIR" ]; then
+if [ -z "$DOTFILES_DIR" ] || [ ! -d "$DOTFILES_DIR/themes" ]; then
     if [ -n "$BASH_VERSION" ] && [ -n "${BASH_SOURCE[0]}" ]; then
-        _CURRENT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+        _CURRENT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")"
         if [ -d "$_CURRENT_DIR/../../themes" ]; then
             DOTFILES_DIR="$(cd "$_CURRENT_DIR/../.." 2>/dev/null && pwd)"
         else
@@ -44,8 +44,14 @@ if [ -z "$DOTFILES_DIR" ]; then
         unset _CURRENT_DIR
     fi
 fi
-export DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
-
+if [ ! -d "$DOTFILES_DIR/themes" ]; then
+    if [ -d "$HOME/Desktop/Work/dotfiles/themes" ]; then
+        DOTFILES_DIR="$HOME/Desktop/Work/dotfiles"
+    else
+        DOTFILES_DIR="$HOME/.dotfiles"
+    fi
+fi
+export DOTFILES_DIR
 # ------------------------------------------------------------------------------
 # 2. Base Configuration & Editors
 # ------------------------------------------------------------------------------

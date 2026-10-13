@@ -6,6 +6,8 @@ local options = {
     typescriptreact = { "prettier" },
     css = { "prettier" },
     html = { "prettier" },
+    python = { "black" },
+    sh = { "shfmt" },
   },
 
   format_on_save = {
