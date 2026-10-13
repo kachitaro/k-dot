@@ -178,7 +178,7 @@ if ($Full) {
     $corePackages = @(
         "main/git", "main/7zip", "main/curl", "main/pwsh", "main/neovim",
         "main/ripgrep", "main/fd", "main/fzf", "main/bat", "main/eza",
-        "main/lazygit", "main/starship", "main/atuin",
+        "main/lazygit", "main/starship",
         "main/zoxide", "main/python", "main/fnm", "main/bun",
         "vcredist-aio", "extras/wezterm", "extras/im-select", "nerd-fonts/JetBrainsMono-NF"
     )

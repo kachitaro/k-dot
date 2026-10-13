@@ -61,7 +61,7 @@ function module.setup(config)
     weight = 'Regular',
     style  = 'Normal',
   })
-  config.font_size = 10.5
+  config.font_size = 9.0
   config.font_rules = {
     {
       italic = true,
@@ -85,7 +85,6 @@ function module.setup(config)
   config.automatically_reload_config = true
   config.enable_csi_u_key_encoding = true
 
-  -- config.color_scheme is handled dynamically in ui.lua
   config.use_ime = false
 
   config.keys = {
@@ -108,27 +107,7 @@ function module.setup(config)
       key = 'p',
       mods = 'CTRL|SHIFT',
       action = act.DisableDefaultAssignment,
-    },
-    {
-      key = 'LeftArrow',
-      mods = 'CTRL|SHIFT',
-      action = act.SendKey { key = 'LeftArrow', mods = 'CTRL|SHIFT' },
-    },
-    {
-      key = 'RightArrow',
-      mods = 'CTRL|SHIFT',
-      action = act.SendKey { key = 'RightArrow', mods = 'CTRL|SHIFT' },
-    },
-    {
-      key = 'UpArrow',
-      mods = 'CTRL|SHIFT',
-      action = act.SendKey { key = 'UpArrow', mods = 'CTRL|SHIFT' },
-    },
-    {
-      key = 'DownArrow',
-      mods = 'CTRL|SHIFT',
-      action = act.SendKey { key = 'DownArrow', mods = 'CTRL|SHIFT' },
-    },
+    }
   }
 end
 

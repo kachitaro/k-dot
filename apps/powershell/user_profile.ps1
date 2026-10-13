@@ -47,7 +47,7 @@ if (Get-Module -Name PSReadLine) {
 }
 
 # ------------------------------------------------------------------------------
-# 3. PSFzf (Chỉ lấy Ctrl+F, NHƯỜNG Ctrl+R cho Atuin)
+# 3. PSFzf (Chỉ lấy Ctrl+F, giữ nguyên Ctrl+R mặc định của PSReadLine)
 # ------------------------------------------------------------------------------
 Import-Module PSFzf -ErrorAction SilentlyContinue
 if (Get-Module -Name PSFzf) {
@@ -71,10 +71,6 @@ if ($cachedInitPs1 -and (Test-Path $cachedInitPs1)) {
 
     if (Get-Command zoxide -ErrorAction SilentlyContinue) {
         zoxide init powershell | Out-String | Invoke-Expression
-    }
-
-    if (Get-Command atuin -ErrorAction SilentlyContinue) {
-        Invoke-Expression ((&atuin init powershell --disable-up-arrow) -join "`n")
     }
 }
 
