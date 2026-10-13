@@ -90,9 +90,6 @@ fi
 # Zoxide (Modern cd)
 command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"
 
-# Atuin (SQLite Shell History) environment
-[ -f "$HOME/.atuin/bin/env" ] && source "$HOME/.atuin/bin/env"
-
 # Fzf (Fuzzy Finder) environment
 if command -v fzf >/dev/null 2>&1; then
     export FZF_DEFAULT_OPTS="--height 50% --layout=reverse --border --info=inline"
@@ -104,7 +101,6 @@ if [ -f "$DOTFILES_DIR/themes/generated/init.zsh" ]; then
     source "$DOTFILES_DIR/themes/generated/init.zsh"
 else
     # Fallback: chạy trực tiếp các lệnh khởi tạo
-    command -v atuin >/dev/null 2>&1 && eval "$(atuin init zsh --disable-up-arrow)"
     command -v fzf >/dev/null 2>&1 && source <(fzf --zsh)
     command -v fnm >/dev/null 2>&1 && eval "$(fnm env --use-on-cd --shell zsh)"
     command -v starship >/dev/null 2>&1 && eval "$(starship init zsh)"

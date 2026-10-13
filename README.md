@@ -38,7 +38,6 @@ Rebuild your development environment on **Windows 11/10** and **Linux / WSL / ma
 ```
 dotfiles/
 ├── apps/                    # 📦 Application configurations (Auto-discovered by 'dot')
-│   ├── atuin/               # Shell history sync & fuzzy search
 │   ├── bat/                 # Syntax-highlighted cat alternative
 │   ├── nvim/                # Neovim IDE configuration (NvChad)
 │   ├── powershell/          # PowerShell 7 profile & functions
@@ -169,7 +168,6 @@ All colors across Neovim, WezTerm, Starship, Bash, Zsh, and PowerShell are synch
    - `themes/generated/theme.sh` (Bash & Zsh)
    - `themes/generated/theme.ps1` (PowerShell)
    - `themes/generated/init.zsh` / `init.bash` / `init.ps1` (Precompiled static init scripts for instant shell startup)
-   - `apps/atuin/themes/theme.toml` (Atuin Shell History)
    - `apps/starship/starship.toml` (Starship Prompt Palette)
 4. WezTerm, Neovim, and Shell dynamically pick up the new colors instantly, and terminal startup times are significantly reduced by eliminating dynamic subprocess evals.
 
@@ -190,7 +188,7 @@ Current default theme: **Catppuccin Mocha**.
 
 | Keybinding / Command   | Description                                                                       |
 | :--------------------- | :-------------------------------------------------------------------------------- |
-| `Ctrl + R`             | **Atuin** interactive history search (with full duration, exit code, timestamp)   |
+| `Ctrl + R`             | **FZF** fuzzy history search (Bash/Zsh) / **PSReadLine** reverse search (PowerShell) |
 | `Ctrl + F`             | **PSFzf / FZF** file finder                                                       |
 | `z <dir>`              | **Zoxide** jump to frequently used directory                                      |
 | `g`                    | Alias for `git`                                                                   |

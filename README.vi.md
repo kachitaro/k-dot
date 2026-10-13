@@ -38,7 +38,6 @@ Thiết lập lại toàn bộ môi trường lập trình của bạn trên **W
 ```
 dotfiles/
 ├── apps/                    # 📦 Cấu hình các ứng dụng (Được CLI 'dot' tự động quét và map)
-│   ├── atuin/               # Đồng bộ & tìm kiếm lịch sử lệnh shell
 │   ├── bat/                 # Xem nội dung tệp có highlight cú pháp
 │   ├── nvim/                # Cấu hình Neovim IDE (NvChad)
 │   ├── powershell/          # Profile & hàm tiện ích PowerShell 7
@@ -169,7 +168,6 @@ Toàn bộ màu sắc của Neovim, WezTerm, Starship, Bash, Zsh và PowerShell 
    - `themes/generated/theme.sh` (Bash & Zsh)
    - `themes/generated/theme.ps1` (PowerShell)
    - `themes/generated/init.zsh` / `init.bash` / `init.ps1` (Script khởi tạo tĩnh giúp shell mở tức thì)
-   - `apps/atuin/themes/theme.toml` (Atuin Shell History)
    - `apps/starship/starship.toml` (Bảng màu Starship Prompt)
 4. WezTerm, Neovim và Shell tự động nhận diện vị trí dotfiles động, áp dụng màu mới ngay lập tức và tối ưu triệt để tốc độ mở terminal nhờ loại bỏ các tiến trình con `eval`.
 
@@ -190,7 +188,7 @@ Theme mặc định hiện tại: **Catppuccin Mocha**.
 
 | Phím tắt / Lệnh        | Mô tả                                                                            |
 | :--------------------- | :------------------------------------------------------------------------------- |
-| `Ctrl + R`             | **Atuin** tìm kiếm lịch sử lệnh tương tác (kèm thời lượng chạy, exit code, ngày) |
+| `Ctrl + R`             | **FZF** tìm kiếm lịch sử lệnh (Bash/Zsh) / **PSReadLine** tìm ngược (PowerShell) |
 | `Ctrl + F`             | **PSFzf / FZF** tìm kiếm tệp và thư mục siêu nhanh                               |
 | `z <thư_mục>`          | **Zoxide** nhảy nhanh đến thư mục thường xuyên sử dụng                           |
 | `g`                    | Phím tắt nhanh cho `git`                                                         |

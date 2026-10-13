@@ -76,19 +76,15 @@ return {
           show = {
             folder_arrow = false,
             git = false, -- Tắt icon ký hiệu Git (dấu ✗ / x) để màu tên file thể hiện
+            diagnostics = false, -- Tắt vẽ icon diagnostic dạng sign column để không gây lỗi sign_place
           },
+          diagnostics_placement = "none",
         },
       },
       diagnostics = {
         enable = true,
         show_on_dirs = true,
         show_on_open_dirs = true,
-        icons = {
-          error = "",
-          warning = "",
-          hint = "",
-          info = "",
-        },
       },
     },
   },

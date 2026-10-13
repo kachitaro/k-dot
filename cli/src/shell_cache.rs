@@ -48,9 +48,8 @@ pub fn generate_zsh_cache(out_dir: &Path) -> Result<()> {
         "# Auto-generated Zsh init cache by 'dot inject' / 'dot theme reload'\n# Do not edit manually - regenerate with 'dot inject' or 'dot theme reload'\n\n",
     );
 
-    let tools: [(&str, &str, &[&str]); 5] = [
+    let tools: [(&str, &str, &[&str]); 4] = [
         ("zoxide", "zoxide", &["init", "zsh"]),
-        ("atuin", "atuin", &["init", "zsh"]),
         ("fnm", "fnm", &["env", "--use-on-cd", "--shell", "zsh"]),
         ("fzf", "fzf", &["--zsh"]),
         ("starship", "starship", &["init", "zsh"]),
@@ -76,9 +75,8 @@ pub fn generate_bash_cache(out_dir: &Path) -> Result<()> {
         "# Auto-generated Bash init cache by 'dot inject' / 'dot theme reload'\n# Do not edit manually - regenerate with 'dot inject' or 'dot theme reload'\n\n",
     );
 
-    let tools: [(&str, &str, &[&str]); 5] = [
+    let tools: [(&str, &str, &[&str]); 4] = [
         ("zoxide", "zoxide", &["init", "bash"]),
-        ("atuin", "atuin", &["init", "bash"]),
         ("fnm", "fnm", &["env", "--use-on-cd", "--shell", "bash"]),
         ("fzf", "fzf", &["--bash"]),
         ("starship", "starship", &["init", "bash"]),
@@ -104,7 +102,7 @@ pub fn generate_powershell_cache(out_dir: &Path) -> Result<()> {
         "# Auto-generated PowerShell init cache by 'dot inject' / 'dot theme reload'\n# Do not edit manually - regenerate with 'dot inject' or 'dot theme reload'\n\n",
     );
 
-    let tools: [(&str, &str, &[&str]); 4] = [
+    let tools: [(&str, &str, &[&str]); 3] = [
         ("starship", "starship", &["init", "powershell"]),
         (
             "fnm",
@@ -112,11 +110,6 @@ pub fn generate_powershell_cache(out_dir: &Path) -> Result<()> {
             &["env", "--use-on-cd", "--shell", "powershell"],
         ),
         ("zoxide", "zoxide", &["init", "powershell"]),
-        (
-            "atuin",
-            "atuin",
-            &["init", "powershell", "--disable-up-arrow"],
-        ),
     ];
 
     let mut using_statements = Vec::new();
