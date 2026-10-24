@@ -286,7 +286,7 @@ feature/* ──PR──▶ develop ──PR──▶ release ──▶ GitHub R
 ```
 
 - **CI** (`.github/workflows/ci.yml`) chạy `cargo check`, `cargo fmt --check`, `cargo clippy -D warnings` và `cargo test` trên Windows, Linux, macOS, kèm kiểm tra cú pháp mọi file `.ps1`. CI chạy khi push vào `main` / `develop` và khi mở PR vào `main`, `develop`, `release`.
-- **Release** (`.github/workflows/release.yml`) chạy mỗi khi có push vào `release` (merge PR cũng tính), khi push tag `v*`, hoặc khi chạy tay:
+- **Release** (`.github/workflows/release.yml`) chạy khi một lần push vào `release` (merge PR cũng tính) có thay đổi trong `cli/`, khi push tag `v*`, hoặc khi chạy tay. Thay đổi chỉ có tài liệu, script hay cấu hình vẫn đi qua `release` sang `main` mà không tạo binary mới; nếu vẫn muốn phát hành thì chạy workflow bằng tay.
   1. Chạy các test của CI.
   2. Chọn version: lấy version trong `cli/Cargo.toml`, tăng patch cho tới khi gặp tag chưa tồn tại. Version nhập tay không được trùng tag đã có.
   3. Build 5 binary và tạo GitHub Release kèm checksum SHA-256. Tag trỏ đúng commit đã build.

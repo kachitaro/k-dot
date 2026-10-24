@@ -286,7 +286,7 @@ feature/* ──PR──▶ develop ──PR──▶ release ──▶ GitHub R
 ```
 
 - **CI** (`.github/workflows/ci.yml`) runs `cargo check`, `cargo fmt --check`, `cargo clippy -D warnings` and `cargo test` on Windows, Linux and macOS, plus a syntax check of every `.ps1` file. It runs on pushes to `main` / `develop` and on pull requests to `main`, `develop` and `release`.
-- **Release** (`.github/workflows/release.yml`) runs on every push to `release` (merging a PR counts), on a `v*` tag, or manually:
+- **Release** (`.github/workflows/release.yml`) runs when a push to `release` (merging a PR counts) changes anything under `cli/`, on a `v*` tag, or manually. Changes that only touch docs, scripts or configs pass through `release` to `main` without publishing a new binary; run the workflow manually if you still want a release.
   1. Runs the CI tests.
   2. Picks the version: the one in `cli/Cargo.toml`, bumped by one patch until an unused tag is found. A version entered manually must not already exist.
   3. Builds the 5 binaries and publishes a GitHub Release with SHA-256 checksums. The tag points at the commit that was built.
