@@ -3,10 +3,10 @@
 # 🚀 Linux / macOS Dotfiles & Dev Environment Installer
 # Usage:
 #   # ⚡ Fast Install: Tải CLI dot và gắn cấu hình ngay
-#   curl -fsSL https://raw.githubusercontent.com/kachitaro/dotfiles/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/kachitaro/k-dot/main/install.sh | bash
 #
 #   # 🚀 Full Machine Setup: Cài đặt toàn bộ môi trường phần mềm
-#   curl -fsSL https://raw.githubusercontent.com/kachitaro/dotfiles/main/install.sh | bash -s -- --full
+#   curl -fsSL https://raw.githubusercontent.com/kachitaro/k-dot/main/install.sh | bash -s -- --full
 # ==============================================================================
 set -e
 
@@ -33,7 +33,7 @@ done
 
 echo -e "${MAGENTA}====================================================================${NC}"
 echo -e "${MAGENTA}  [+] KACHITARO DOTFILES & DEV ENVIRONMENT INSTALLER                ${NC}"
-echo -e "${MAGENTA}  Repository: https://github.com/kachitaro/dotfiles                ${NC}"
+echo -e "${MAGENTA}  Repository: https://github.com/kachitaro/k-dot                ${NC}"
 echo -e "${MAGENTA}====================================================================${NC}\n"
 
 # 1. Determine Dotfiles Directory
@@ -74,7 +74,7 @@ esac
 
 INSTALLED_FROM_RELEASE=false
 if [ -n "$TARGET" ]; then
-    RELEASE_URL="https://github.com/kachitaro/dotfiles/releases/latest/download/dot-${TARGET}.tar.gz"
+    RELEASE_URL="https://github.com/kachitaro/k-dot/releases/latest/download/dot-${TARGET}.tar.gz"
     TEMP_TAR="/tmp/dot-${TARGET}.tar.gz"
     echo -e "${CYAN}[*] Đang tải binary release (${TARGET}) từ GitHub...${NC}"
     if curl -fsSL -o "$TEMP_TAR" "$RELEASE_URL" 2>/dev/null; then
@@ -127,7 +127,7 @@ if [ "$FULL_INSTALL" = true ]; then
         echo -e "${CYAN}[*] Đang clone dotfiles repository về $DOTFILES_DIR...${NC}"
         if command -v git >/dev/null 2>&1; then
             mkdir -p "$(dirname "$DOTFILES_DIR")"
-            git clone https://github.com/kachitaro/dotfiles.git "$DOTFILES_DIR"
+            git clone https://github.com/kachitaro/k-dot.git "$DOTFILES_DIR"
             echo -e "  ${GREEN}[+] Dotfiles đã sẵn sàng tại $DOTFILES_DIR${NC}"
         fi
     fi

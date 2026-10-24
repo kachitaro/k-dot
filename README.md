@@ -25,9 +25,11 @@ Rebuild your development environment on **Windows 11/10** and **Linux / WSL / ma
 - [📁 Repository Structure](#-repository-structure)
 - [🚀 Installation Guide](#-installation-guide)
 - [🔄 Migration Guide (For Existing Users)](#-migration-guide-for-existing-users)
-- [🧰 Management with `dot` CLI](#-management-with-dot-cli)
-- [🎨 Theme Engine (System-wide Color Sync)](#-theme-engine--shell-cache-system-wide-color-sync--fast-startup)
+- [🧰 Management with `dot` CLI](#-management-with-dot-cli-rust-powered)
+- [🎨 Theme Engine & Shell Cache](#-theme-engine--shell-cache)
 - [⌨️ Keybindings & Utilities](#️-keybindings--utilities)
+- [🩺 Troubleshooting](#-troubleshooting)
+- [🧑‍💻 Development & Release](#-development--release)
 - [☕ Support / Donate](#-support--donate)
 - [📜 License](#-license)
 
@@ -36,7 +38,8 @@ Rebuild your development environment on **Windows 11/10** and **Linux / WSL / ma
 ## 📁 Repository Structure
 
 ```
-dotfiles/
+k-dot/
+├── .github/workflows/       # ⚙️ CI (test, lint) & Release (build + publish binaries)
 ├── apps/                    # 📦 Application configurations (Auto-discovered by 'dot')
 │   ├── bat/                 # Syntax-highlighted cat alternative
 │   ├── nvim/                # Neovim IDE configuration (NvChad)
@@ -45,14 +48,17 @@ dotfiles/
 │   ├── shell/               # POSIX Shell profiles (.bashrc, .zshrc)
 │   ├── starship/            # Starship cross-shell prompt
 │   └── wezterm/             # WezTerm GPU terminal emulator
+├── assets/                  # 🖼️ Screenshots for this README
 ├── cli/                     # 🦀 Native Rust CLI ('dot' / 'k-dot')
 ├── themes/                  # 🎨 Single-source-of-truth Theme Engine
-│   ├── theme.json           # Palette configuration (Catppuccin Mocha)
+│   ├── theme.json           # Palette configuration (default: VS Code Dark Modern)
 │   └── generated/           # Compiled theme & cached shell init scripts
 ├── install.ps1              # Windows setup script
 ├── install.sh               # Linux/macOS setup script
 └── README.md                # Documentation
 ```
+
+Every folder inside `apps/` is linked to `~/.config/<name>` by `dot inject`. The exceptions are `shell/` and `powershell/`: those are loaded by a line that `dot inject` adds to your shell profiles (`~/.bashrc`, `~/.zshrc`, PowerShell `$PROFILE`).
 
 ---
 
@@ -64,11 +70,20 @@ Open **PowerShell** (Run as Administrator recommended for full setup) and run:
 
 ```powershell
 # ⚡ Fast Install: Downloads dot CLI binary & syncs configs immediately
-irm https://raw.githubusercontent.com/kachitaro/dotfiles/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/kachitaro/k-dot/main/install.ps1 | iex
 
 # 🚀 Full Machine Setup: Installs Scoop, Neovim, WezTerm, Font, Node, Tools & virtualization
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/kachitaro/dotfiles/main/install.ps1))) -Full
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/kachitaro/k-dot/main/install.ps1))) -Full
 ```
+
+`install.ps1` options:
+
+| Option          | Effect                                                                 |
+| :-------------- | :--------------------------------------------------------------------- |
+| `-Full`         | Also install Scoop, packages, PowerShell modules and Windows features  |
+| `-SkipFeatures` | With `-Full`: do not enable WSL / Hyper-V / Virtual Machine Platform   |
+| `-ForceInstall` | Re-download `dot.exe` and overwrite existing configs without backup    |
+| `-DotfilesDir`  | Use a custom dotfiles folder (default: `~\.dotfiles`)                  |
 
 ### 2. Linux / macOS
 
@@ -76,11 +91,13 @@ Open **Terminal** and run:
 
 ```bash
 # ⚡ Fast Install: Downloads pre-built dot binary & syncs configs immediately
-curl -fsSL https://raw.githubusercontent.com/kachitaro/dotfiles/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/kachitaro/k-dot/main/install.sh | bash
 
-# 🚀 Full Machine Setup: Installs system packages (apt/brew/pacman), Neovim, WezTerm, Font, Node & Tools
-curl -fsSL https://raw.githubusercontent.com/kachitaro/dotfiles/main/install.sh | bash -s -- --full
+# 🚀 Full Machine Setup: Installs system packages (apt/brew/pacman), Starship & Tools
+curl -fsSL https://raw.githubusercontent.com/kachitaro/k-dot/main/install.sh | bash -s -- --full
 ```
+
+Pre-built binaries are published for Linux (x86_64, aarch64) and macOS (Apple Silicon, Intel). On other platforms the installer builds the CLI with Cargo if it is available.
 
 ### 3. Run Directly from Cloned Repo
 
@@ -93,7 +110,7 @@ curl -fsSL https://raw.githubusercontent.com/kachitaro/dotfiles/main/install.sh 
 ```
 
 > [!IMPORTANT]
-> After installing on Windows, **restart your machine** to apply Hyper-V, WSL, and font settings. On Linux/macOS, run `source ~/.bashrc` or open a new terminal tab.
+> After a full install on Windows, **restart your machine** to apply Hyper-V, WSL, and font settings. On Linux/macOS, run `source ~/.bashrc` or open a new terminal tab.
 
 ### 4. Overwrite & Uninstall
 
@@ -101,6 +118,8 @@ curl -fsSL https://raw.githubusercontent.com/kachitaro/dotfiles/main/install.sh 
 | :-------------------------------------------------- | :---------------------------- | :----------------------- |
 | Overwrite (skip backup)                             | `.\install.ps1 -ForceInstall` | `./install.sh --force`   |
 | Uninstall (remove symlinks, restore original shell) | `dot uninstall`               | `dot uninstall`          |
+
+Without the overwrite option, any existing file or folder is renamed to `<name>.bak_<timestamp>` before it is replaced by a link.
 
 ---
 
@@ -122,6 +141,10 @@ dot update
 dot inject --force
 ```
 
+> [!NOTE]
+> The repository was renamed from `kachitaro/dotfiles` to `kachitaro/k-dot`. GitHub still redirects the old URL, but you can point your clone at the new one:
+> `git remote set-url origin https://github.com/kachitaro/k-dot.git`
+
 ---
 
 ## 🧰 Management with `dot` CLI (Rust-powered)
@@ -129,17 +152,21 @@ dot inject --force
 The management CLI (`k-dot` / `dot`) is written in **Rust** for blazing-fast startup, robust cross-platform path resolution, and native symlink handling without runtime dependencies.
 
 ```bash
-dot init [path]                  # Initialize standalone dotfiles workspace (default ~/.dotfiles) with starter theme.json
-dot install                      # Run system installer (Options: --force / -ForceInstall)
-dot update                       # Self-update CLI binary (dot) to latest version from GitHub Release
+dot init [path] [--force]        # Initialize standalone dotfiles workspace (default ~/.dotfiles) with starter theme.json
+dot install [--force]            # Run the platform installer (install.ps1 / install.sh)
+dot update                       # Self-update CLI binary (dot) to latest version from GitHub Release (SHA-256 verified)
 dot add <path>                   # Adopt a config into apps/ folder (e.g. dot add ~/.config/alacritty)
 dot eject                        # Unlink dotfiles and restore independent real files to system
-dot inject                       # Re-link dotfiles symlinks and configurations into system (Options: --force)
+dot inject [--force]             # Re-link configs, re-add shell profile lines and rebuild theme & shell caches
 dot uninstall                    # Fully uninstall dotfiles
-dot theme reload                 # Recompile and apply theme from theme.json
+dot theme reload                 # Recompile theme.json and regenerate shell caches
 dot theme path                   # Print absolute path of themes/generated directory (for dynamic scripts)
 dot --help                       # Display help menu
 ```
+
+The CLI finds your dotfiles folder from the `DOTFILES_DIR` environment variable first (set by the installers), then from the location of the binary, then the current directory, and finally `~/.dotfiles`.
+
+On Windows, links are created as symlinks when possible (requires Developer Mode or admin rights). If that fails, folders fall back to junctions and files are copied.
 
 ### 🦀 Build CLI from Source
 
@@ -157,21 +184,31 @@ cargo build --release
 
 ---
 
-## 🎨 Theme Engine & Shell Cache (System-wide Color Sync & Fast Startup)
+## 🎨 Theme Engine & Shell Cache
 
-All colors across Neovim, WezTerm, Starship, Bash, Zsh, and PowerShell are synchronized from a **single source of truth**: `themes/theme.json`.
+All colors across Neovim, WezTerm, Starship, bat, Bash, Zsh, and PowerShell are synchronized from a **single source of truth**: `themes/theme.json`.
 
 1. Edit colors in `themes/theme.json`.
 2. Run `dot theme reload` (or `dot inject`).
-3. The built-in Rust Theme Engine compiles JSON and freezes shell initialization output directly into:
+3. The built-in Rust Theme Engine compiles the JSON into:
    - `themes/generated/theme.lua` (WezTerm & Neovim)
    - `themes/generated/theme.sh` (Bash & Zsh)
    - `themes/generated/theme.ps1` (PowerShell)
-   - `themes/generated/init.zsh` / `init.bash` / `init.ps1` (Precompiled static init scripts for instant shell startup)
    - `apps/starship/starship.toml` (Starship Prompt Palette)
-4. WezTerm, Neovim, and Shell dynamically pick up the new colors instantly, and terminal startup times are significantly reduced by eliminating dynamic subprocess evals.
+   - `apps/bat/config` (bat theme)
+4. WezTerm and Neovim reload the new colors automatically. Open a new shell tab to apply them to the prompt.
 
-Current default theme: **Catppuccin Mocha**.
+Current default theme: **VS Code Dark Modern**.
+
+### ⚡ Shell Cache (Fast Startup)
+
+The same commands also write precompiled init scripts so shells do not have to spawn every tool on startup:
+
+- `themes/generated/init.ps1` / `init.bash` / `init.zsh` contain the frozen init output of **Starship**, **zoxide** and (Bash/Zsh) **fzf**.
+- **fnm** is intentionally **not** cached: `fnm env` creates a per-session folder and prints the current `PATH`, so it runs live in every new shell.
+- These files contain absolute paths of the machine that generated them, so they are listed in `.gitignore`. Re-run `dot theme reload` after installing or moving any of these tools.
+
+On PowerShell, the **PSFzf** module is loaded on the first `Ctrl + F` press instead of at startup.
 
 ---
 
@@ -179,22 +216,94 @@ Current default theme: **Catppuccin Mocha**.
 
 ### WezTerm
 
-| Keybinding          | Action                  |
-| :------------------ | :---------------------- |
-| `Ctrl + Shift + \|` | Split pane vertically   |
-| `Ctrl + Shift + D`  | Split pane horizontally |
+| Keybinding          | Action                                         |
+| :------------------ | :--------------------------------------------- |
+| `Ctrl + Shift + \|` | Split pane left / right                        |
+| `Ctrl + Shift + D`  | Split pane top / bottom                        |
+| `Ctrl + Shift + P`  | Disabled (frees the key for the shell / Neovim) |
 
 ### Core Shell & Shell Tools
 
-| Keybinding / Command   | Description                                                                       |
-| :--------------------- | :-------------------------------------------------------------------------------- |
+| Keybinding / Command   | Description                                                                          |
+| :--------------------- | :----------------------------------------------------------------------------------- |
 | `Ctrl + R`             | **FZF** fuzzy history search (Bash/Zsh) / **PSReadLine** reverse search (PowerShell) |
-| `Ctrl + F`             | **PSFzf / FZF** file finder                                                       |
-| `z <dir>`              | **Zoxide** jump to frequently used directory                                      |
-| `g`                    | Alias for `git`                                                                   |
-| `ls`, `ll`, `la`, `lt` | **Eza** modern file listings (icons, git status, tree view)                       |
-| `cat <file>`           | **Bat** file viewer with syntax highlighting and line numbers                     |
-| `Get-SystemSizeReport` | *(PowerShell)* Detailed disk space analysis across dev directories and caches     |
+| `Ctrl + T`             | *(Bash/Zsh)* **FZF** file finder with preview                                        |
+| `Alt + C`              | *(Bash/Zsh)* **FZF** jump into a sub-directory                                       |
+| `Ctrl + F`             | *(PowerShell)* **PSFzf** file finder                                                 |
+| `z <dir>` / `zi`       | **Zoxide** jump to a frequently used directory (`zi` = interactive)                  |
+| `g`                    | Alias for `git`                                                                      |
+| `vi`, `vim`            | Alias for `nvim`                                                                     |
+| `ls`, `ll`, `la`, `lt` | **Eza** modern file listings (icons, git status, tree view)                          |
+| `cat <file>`, `b`      | **Bat** file viewer with syntax highlighting (`b` uses the pager)                    |
+
+### PowerShell Utilities
+
+| Command                | Description                                                                   |
+| :--------------------- | :---------------------------------------------------------------------------- |
+| `grep`, `find`         | Linux-style wrappers around `rg` and `fd` (fall back to built-in cmdlets)     |
+| `which`, `touch`       | Linux-style helpers                                                           |
+| `Get-SystemSizeReport` | Size of `C:\Windows`, Program Files and `C:\Users` compared to a clean install |
+| `Get-AppSizeReport`    | Installed applications sorted by disk usage (Program Files, AppData, Scoop)   |
+
+### Bash / Zsh Utilities
+
+| Command           | Description                                       |
+| :---------------- | :------------------------------------------------ |
+| `get_system_size` | Disk usage of `/` and the 10 largest folders in `~` |
+| `cd..`, `cd...`   | Go up one / two directories                       |
+
+---
+
+## 🩺 Troubleshooting
+
+**PowerShell changes do not take effect / startup is still slow.**
+PowerShell loads up to four profile files. If one of them still loads an old copy of `user_profile.ps1`, the dotfiles profile sees it as "already loaded" and stops. List them and check each one:
+
+```powershell
+$PROFILE | Select-Object *
+```
+
+Every profile that loads the dotfiles should point to `$env:DOTFILES_DIR\apps\powershell\user_profile.ps1`. Scoop's `pwsh` keeps its all-users profile in `~\scoop\persist\pwsh\profile.ps1`.
+
+**Node or other tools are missing from `PATH` in a new shell.**
+Your shell cache was generated by an older `dot` that froze `PATH` into it. Run `dot update`, then `dot theme reload`.
+
+**Measure PowerShell startup time:**
+
+```powershell
+Measure-Command { pwsh -NoLogo -Command exit }
+```
+
+---
+
+## 🧑‍💻 Development & Release
+
+Branches:
+
+```
+feature/* ──PR──▶ develop ──PR──▶ release ──▶ GitHub Release (vX.Y.Z)
+                                     └──PR──▶ main
+```
+
+- **CI** (`.github/workflows/ci.yml`) runs `cargo check`, `cargo fmt --check`, `cargo clippy -D warnings` and `cargo test` on Windows, Linux and macOS, plus a syntax check of every `.ps1` file. It runs on pushes to `main` / `develop` and on pull requests to `main`, `develop` and `release`.
+- **Release** (`.github/workflows/release.yml`) runs when a push to `release` (merging a PR counts) changes anything under `cli/`, on a `v*` tag, or manually. Changes that only touch docs, scripts or configs pass through `release` to `main` without publishing a new binary; run the workflow manually if you still want a release.
+  1. Runs the CI tests.
+  2. Picks the version: the one in `cli/Cargo.toml`, bumped by one patch until an unused tag is found. A version entered manually must not already exist.
+  3. Builds the 5 binaries and publishes a GitHub Release with SHA-256 checksums. The tag points at the commit that was built.
+  4. Commits the new version (`Cargo.toml` + `Cargo.lock`) back to `main` and `develop`.
+- After a release, open a PR from `release` into `main` so `main` gets the code as well.
+
+> [!WARNING]
+> Never use GitHub's **Resolve conflicts** button on a PR whose head branch is `release`: it pushes a merge commit to `release` and starts another release. Resolve conflicts on a separate branch instead.
+
+Run the same checks locally before opening a PR:
+
+```bash
+cd cli
+cargo fmt -- --check
+cargo clippy --all-targets -- -D warnings
+cargo test
+```
 
 ---
 
