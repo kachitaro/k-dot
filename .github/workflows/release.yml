@@ -1,16 +1,13 @@
 name: Release
 
 on:
+  # Merge PR vào release cũng tạo ra sự kiện push, nên không cần trigger pull_request
+  # (trước đây có cả hai khiến mỗi lần merge chạy release hai lần song song).
   push:
     branches:
       - "release"
     tags:
       - "v*"
-  pull_request:
-    types:
-      - closed
-    branches:
-      - "release"
   workflow_dispatch:
     inputs:
       version:
@@ -18,14 +15,22 @@ on:
         required: false
         default: ""
 
-
 permissions:
   contents: write
 
+# Mỗi lần chỉ chạy một release, lần sau xếp hàng chờ chứ không huỷ lần đang chạy
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
+  test:
+    name: Test
+    uses: ./.github/workflows/ci.yml
+
   prepare-version:
     name: Prepare Release Version
-    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
+    needs: [test]
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.get_version.outputs.version }}
@@ -39,6 +44,8 @@ jobs:
       - name: Calculate Release Version
         id: get_version
         run: |
+          tag_exists() { git rev-parse -q --verify "refs/tags/v$1" >/dev/null; }
+
           # 1. Đọc version hiện tại từ cli/Cargo.toml
           CURRENT_VER=$(grep -m1 '^version = ' cli/Cargo.toml | sed -E 's/version = "(.*)"/\1/')
           echo "Current Cargo.toml version: $CURRENT_VER"
@@ -48,19 +55,23 @@ jobs:
           if [ -n "$INPUT_VER" ]; then
             # Nếu người dùng nhập thủ công qua workflow_dispatch
             CLEAN_VER="${INPUT_VER#v}"
+            if tag_exists "$CLEAN_VER"; then
+              echo "::error::Tag v$CLEAN_VER đã tồn tại, không ghi đè bản phát hành cũ."
+              exit 1
+            fi
           elif [[ "${{ github.ref }}" =~ ^refs/tags/v ]]; then
             # Nếu kích hoạt bằng push tag
             CLEAN_VER="${GITHUB_REF_NAME#v}"
           else
-            # Kích hoạt khi push vào nhánh release: kiểm tra xem tag đã tồn tại chưa
-            if git rev-parse "v$CURRENT_VER" >/dev/null 2>&1; then
-              # Tag đã tồn tại -> tự động tăng patch version (vd: 0.1.0 -> 0.1.1)
-              IFS='.' read -r major minor patch <<< "$CURRENT_VER"
-              NEW_PATCH=$((patch + 1))
-              CLEAN_VER="${major}.${minor}.${NEW_PATCH}"
+            # Kích hoạt khi push vào nhánh release: tăng patch cho tới khi gặp tag chưa tồn tại
+            # (Cargo.toml trên release có thể cũ hơn tag mới nhất nếu quên sync version về).
+            CLEAN_VER="$CURRENT_VER"
+            while tag_exists "$CLEAN_VER"; do
+              IFS='.' read -r major minor patch <<< "$CLEAN_VER"
+              CLEAN_VER="${major}.${minor}.$((patch + 1))"
+            done
+            if [ "$CLEAN_VER" != "$CURRENT_VER" ]; then
               echo "Auto-bumped patch version from $CURRENT_VER to $CLEAN_VER"
-            else
-              CLEAN_VER="$CURRENT_VER"
             fi
           fi
 
@@ -108,12 +119,20 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Update Version in Cargo.toml
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: cli
+          key: ${{ matrix.target }}
+
+      - name: Update Version in Cargo.toml & Cargo.lock
         run: |
           VERSION="${{ needs.prepare-version.outputs.version }}"
           echo "Updating Cargo.toml version to $VERSION"
-          sed -i -E "s/^version = \".*\"/version = \"$VERSION\"/" cli/Cargo.toml
-          cat cli/Cargo.toml | head -n 10
+          sed -i.bak -E "s/^version = \".*\"/version = \"$VERSION\"/" cli/Cargo.toml && rm cli/Cargo.toml.bak
+          # Chỉ cập nhật version của chính crate trong Cargo.lock, không đụng tới dependency
+          cargo update --manifest-path cli/Cargo.toml --workspace
+          head -n 10 cli/Cargo.toml
         shell: bash
 
       - name: Install Cross (if needed)
@@ -123,9 +142,9 @@ jobs:
       - name: Build Binary
         run: |
           if [ "${{ matrix.use_cross }}" = "true" ]; then
-            cross build --release --manifest-path cli/Cargo.toml --target ${{ matrix.target }}
+            cross build --release --locked --manifest-path cli/Cargo.toml --target ${{ matrix.target }}
           else
-            cargo build --release --manifest-path cli/Cargo.toml --target ${{ matrix.target }}
+            cargo build --release --locked --manifest-path cli/Cargo.toml --target ${{ matrix.target }}
           fi
         shell: bash
 
@@ -184,37 +203,45 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.prepare-version.outputs.tag }}
+          # Tag phải trỏ đúng commit vừa build; mặc định GitHub tạo tag ở HEAD của nhánh mặc định (main)
+          target_commitish: ${{ github.sha }}
           name: Release ${{ needs.prepare-version.outputs.tag }}
           files: dist/*
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  sync-to-main:
-    name: Sync Version Back to Main Branch
+  sync-version:
+    name: Sync Version Back to ${{ matrix.branch }}
     needs: [prepare-version, publish-release]
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: [main, develop]
     steps:
-      - name: Checkout main branch
+      - name: Checkout ${{ matrix.branch }} branch
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ matrix.branch }}
           fetch-depth: 0
 
-      - name: Update Cargo.toml on main
+      - name: Update Cargo.toml & Cargo.lock on ${{ matrix.branch }}
         run: |
           VERSION="${{ needs.prepare-version.outputs.version }}"
-          echo "Updating cli/Cargo.toml on main to version $VERSION"
+          BRANCH="${{ matrix.branch }}"
+          echo "Updating cli/Cargo.toml on $BRANCH to version $VERSION"
           sed -i -E "s/^version = \".*\"/version = \"$VERSION\"/" cli/Cargo.toml
+          cargo update --manifest-path cli/Cargo.toml --workspace
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          if ! git diff --quiet cli/Cargo.toml; then
-            git add cli/Cargo.toml
+          if ! git diff --quiet cli/Cargo.toml cli/Cargo.lock; then
+            git add cli/Cargo.toml cli/Cargo.lock
             git commit -m "chore(release): bump version to $VERSION [skip ci]"
-            git push origin main
-            echo "Successfully updated version to $VERSION on main branch!"
+            git push origin "$BRANCH"
+            echo "Successfully updated version to $VERSION on $BRANCH branch!"
           else
-            echo "Version on main is already up to date."
+            echo "Version on $BRANCH is already up to date."
           fi
