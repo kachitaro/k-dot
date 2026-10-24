@@ -3,11 +3,15 @@ name: Release
 on:
   # Merge PR vào release cũng tạo ra sự kiện push, nên không cần trigger pull_request
   # (trước đây có cả hai khiến mỗi lần merge chạy release hai lần song song).
+  # Chỉ phát hành khi CLI thay đổi; thay đổi tài liệu / cấu hình vẫn đi qua release sang main
+  # mà không tạo binary mới. Bộ lọc paths không áp dụng cho push tag, nên push tag v* vẫn phát hành.
   push:
     branches:
       - "release"
     tags:
       - "v*"
+    paths:
+      - "cli/**"
   workflow_dispatch:
     inputs:
       version:
