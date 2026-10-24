@@ -42,6 +42,40 @@ pub fn verify_checksum(actual_sha256: &str, expected_content: &str) -> bool {
     false
 }
 
+/// Ghi binary mới lên `dest` bằng cách tạo file tạm cùng thư mục rồi `rename` đè lên.
+/// Ghi trực tiếp lên binary đang chạy sẽ báo "Text file busy" (ETXTBSY); rename thì không.
+#[cfg(unix)]
+fn install_binary(src: &Path, dest: &Path) -> Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+
+    let tmp = dest.with_file_name(".dot.update.tmp");
+    let _ = fs::remove_file(&tmp);
+    fs::copy(src, &tmp).with_context(|| format!("Không thể ghi binary tạm: {}", tmp.display()))?;
+    fs::set_permissions(&tmp, fs::Permissions::from_mode(0o755))?;
+    fs::rename(&tmp, dest).with_context(|| {
+        let _ = fs::remove_file(&tmp);
+        format!("Không thể thay thế binary: {}", dest.display())
+    })?;
+    Ok(())
+}
+
+/// Tìm PowerShell khả dụng trên Windows: thử "powershell" (Windows PowerShell 5.x)
+/// trước, rồi fallback sang "pwsh" (PowerShell 7+).
+#[cfg(windows)]
+fn find_powershell() -> Result<String> {
+    for candidate in &["powershell", "pwsh"] {
+        let probe = Command::new(candidate)
+            .args(["-NoProfile", "-Command", "exit 0"])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status();
+        if probe.map(|s| s.success()).unwrap_or(false) {
+            return Ok(candidate.to_string());
+        }
+    }
+    anyhow::bail!("Không tìm thấy 'powershell' hay 'pwsh' trong PATH.");
+}
+
 pub fn execute() -> Result<()> {
     println!(
         "{}",
@@ -136,7 +170,10 @@ pub fn execute() -> Result<()> {
             ext = temp_dir.display()
         );
 
-        let status = Command::new("powershell")
+        let ps_exe = find_powershell().context(
+            "Không tìm thấy PowerShell. Hãy đảm bảo 'powershell' hoặc 'pwsh' có trong PATH.",
+        )?;
+        let status = Command::new(&ps_exe)
             .args(["-NoProfile", "-Command", &ps_script])
             .status()?;
 
@@ -261,8 +298,7 @@ pub fn execute() -> Result<()> {
 
         let extracted_dot = find_extracted_binary(&temp_dir, "dot")?;
 
-        fs::copy(&extracted_dot, &target_dest)?;
-        let _ = Command::new("chmod").arg("+x").arg(&target_dest).status();
+        install_binary(&extracted_dot, &target_dest)?;
         let _ = fs::remove_dir_all(&temp_dir);
         let _ = fs::remove_file(&temp_archive);
         let _ = fs::remove_file(&temp_sha);
@@ -273,8 +309,7 @@ pub fn execute() -> Result<()> {
             if let Some(p) = h_bin.parent() {
                 let _ = fs::create_dir_all(p);
             }
-            let _ = fs::copy(&target_dest, h_bin);
-            let _ = Command::new("chmod").arg("+x").arg(h_bin).status();
+            let _ = install_binary(&target_dest, h_bin);
         }
     }
 
@@ -375,5 +410,30 @@ mod tests {
             "0000000000000000000000000000000000000000000000000000000000000000  dot.zip\n"
         ));
         assert!(!verify_checksum(sample_hash, ""));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_install_binary_replaces_running_executable() {
+        use std::process::Stdio;
+
+        let dir = tempdir().unwrap();
+        let dest = dir.path().join("dot");
+        fs::copy("/bin/sleep", &dest).unwrap();
+        let mut child = Command::new(&dest)
+            .arg("30")
+            .stdout(Stdio::null())
+            .spawn()
+            .unwrap();
+
+        let src = dir.path().join("new");
+        fs::write(&src, b"#!/bin/sh\nexit 0\n").unwrap();
+        let result = install_binary(&src, &dest);
+        let _ = child.kill();
+        let _ = child.wait();
+
+        result.unwrap();
+        assert_eq!(fs::read(&dest).unwrap(), b"#!/bin/sh\nexit 0\n");
+        assert!(Command::new(&dest).status().unwrap().success());
     }
 }

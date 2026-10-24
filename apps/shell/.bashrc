@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # Dotfiles Shell Configuration (Bash & Zsh compatible for Linux / macOS)
 # ==============================================================================
 
@@ -45,11 +45,7 @@ if [ -z "$DOTFILES_DIR" ] || [ ! -d "$DOTFILES_DIR/themes" ]; then
     fi
 fi
 if [ ! -d "$DOTFILES_DIR/themes" ]; then
-    if [ -d "$HOME/Desktop/Work/dotfiles/themes" ]; then
-        DOTFILES_DIR="$HOME/Desktop/Work/dotfiles"
-    else
-        DOTFILES_DIR="$HOME/.dotfiles"
-    fi
+    DOTFILES_DIR="$HOME/.dotfiles"
 fi
 export DOTFILES_DIR
 # ------------------------------------------------------------------------------

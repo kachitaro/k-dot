@@ -1,4 +1,4 @@
-local wezterm = require 'wezterm'
+﻿local wezterm = require 'wezterm'
 local module = {}
 
 local function get_theme_path()
@@ -34,7 +34,6 @@ local function get_theme_path()
   -- 3. Fallback paths (home directory)
   local home = os.getenv("HOME") or os.getenv("USERPROFILE") or (wezterm.home_dir or "")
   if home ~= "" then
-    table.insert(candidates, home .. "/Desktop/Work/dotfiles/themes/generated/theme.lua")
     table.insert(candidates, home .. "/.dotfiles/themes/generated/theme.lua")
     table.insert(candidates, home .. "/.config/themes/generated/theme.lua")
   end
@@ -84,6 +83,8 @@ function module.setup(config)
   config.adjust_window_size_when_changing_font_size = false
   -- Load dynamically generated theme
   local theme_path = get_theme_path()
+  -- Watch theme file so WezTerm auto-reloads when `dot theme reload` runs
+  wezterm.add_to_config_reload_watch_list(theme_path)
   local success, theme = pcall(dofile, theme_path)
 
   if success and type(theme) == "table" then

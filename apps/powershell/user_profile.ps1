@@ -48,10 +48,16 @@ if (Get-Module -Name PSReadLine) {
 
 # ------------------------------------------------------------------------------
 # 3. PSFzf (Chỉ lấy Ctrl+F, giữ nguyên Ctrl+R mặc định của PSReadLine)
+#    Import PSFzf mất ~400ms nên chỉ nạp ở lần bấm Ctrl+F đầu tiên.
 # ------------------------------------------------------------------------------
-Import-Module PSFzf -ErrorAction SilentlyContinue
-if (Get-Module -Name PSFzf) {
-    Set-PsFzfOption -PSReadlineChordProvider 'Ctrl+f'
+if (Get-Module -Name PSReadLine) {
+    Set-PSReadLineKeyHandler -Chord 'Ctrl+f' -BriefDescription 'PSFzf (lazy load)' -ScriptBlock {
+        Import-Module PSFzf -ErrorAction SilentlyContinue
+        if (Get-Module -Name PSFzf) {
+            Set-PsFzfOption -PSReadlineChordProvider 'Ctrl+f'
+            Invoke-FzfPsReadlineHandlerProvider
+        }
+    }
 }
 
 # ------------------------------------------------------------------------------
