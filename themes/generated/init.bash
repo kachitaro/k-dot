@@ -1,6 +1,11 @@
 # Auto-generated Bash init cache by 'dot inject' / 'dot theme reload'
 # Do not edit manually - regenerate with 'dot inject' or 'dot theme reload'
 
+# --- fnm init (live, không cache) ---
+if command -v fnm >/dev/null 2>&1; then
+  eval "$(fnm env --use-on-cd --shell bash)"
+fi
+
 # --- zoxide init ---
 # shellcheck shell=bash
 
@@ -11,7 +16,7 @@
 
 # pwd based on the value of _ZO_RESOLVE_SYMLINKS.
 function __zoxide_pwd() {
-    \builtin pwd -L
+    \command cygpath -w "\builtin pwd -L"
 }
 
 # cd + custom logic based on the value of _ZO_ECHO.
@@ -34,14 +39,23 @@ function __zoxide_hook() {
     pwd_tmp="$(__zoxide_pwd)"
     if [[ ${__zoxide_oldpwd} != "${pwd_tmp}" ]]; then
         __zoxide_oldpwd="${pwd_tmp}"
-        \command zoxide add -- "${__zoxide_oldpwd}"
+        if [[ -o history ]]; then
+            \command zoxide add -- "${__zoxide_oldpwd}"
+        fi
     fi
     return "${retval}"
 }
 
 # Initialize hook.
 if [[ ${PROMPT_COMMAND:=} != *'__zoxide_hook'* ]]; then
-    PROMPT_COMMAND="__zoxide_hook;${PROMPT_COMMAND#;}"
+    if [[ "$(declare -p PROMPT_COMMAND 2>&1)" == "declare -a"* ]]; then
+        PROMPT_COMMAND=("${PROMPT_COMMAND[@]}" __zoxide_hook)
+    else
+        # shellcheck disable=SC2128,SC2178
+        PROMPT_COMMAND="${PROMPT_COMMAND%"${PROMPT_COMMAND##*[![:space:];]}"}"
+        # shellcheck disable=SC2128,SC2178
+        PROMPT_COMMAND="${PROMPT_COMMAND:+${PROMPT_COMMAND};}__zoxide_hook"
+    fi
 fi
 
 # Report common issues.
@@ -80,7 +94,7 @@ function __zoxide_z() {
         __zoxide_cd ~
     elif [[ $# -eq 1 && $1 == '-' ]]; then
         __zoxide_cd "${OLDPWD}"
-    elif [[ $# -eq 1 && -d $1 ]]; then
+    elif [[ $# -eq 1 ]] && (\builtin cd -- "$1") &>/dev/null; then
         __zoxide_cd "$1"
     elif [[ $# -eq 2 && $1 == '--' ]]; then
         __zoxide_cd "$2"
@@ -145,7 +159,7 @@ if [[ ${BASH_VERSINFO[0]:-0} -eq 4 && ${BASH_VERSINFO[1]:-0} -ge 4 || ${BASH_VER
         # If there is a space after the last word, use interactive selection.
         elif [[ -z ${COMP_WORDS[-1]} ]]; then
             # shellcheck disable=SC2312
-            __zoxide_result="$(\command zoxide query --exclude "$(__zoxide_pwd)" --interactive -- "${COMP_WORDS[@]:1:${#COMP_WORDS[@]}-2}")" && {
+            if __zoxide_result="$(\command zoxide query --exclude "$(__zoxide_pwd)" --interactive -- "${COMP_WORDS[@]:1:${#COMP_WORDS[@]}-2}" 2>/dev/null)"; then
                 # In case the terminal does not respond to \e[5n or another
                 # mechanism steals the response, it is still worth completing
                 # the directory in the command line.
@@ -156,7 +170,12 @@ if [[ ${BASH_VERSINFO[0]:-0} -eq 4 && ${BASH_VERSINFO[1]:-0} -ge 4 || ${BASH_VER
                 # builtin "bind".
                 bind -x '"\e[0n": __zoxide_z_complete_helper'
                 \builtin printf '\e[5n' >/dev/tty
-            }
+            else
+                # The interactive selection was cancelled. fzf has drawn over
+                # the prompt, so redraw the current line.
+                bind '"\e[0n": redraw-current-line'
+                \builtin printf '\e[5n' >/dev/tty
+            fi
         fi
     }
 
@@ -169,32 +188,6 @@ fi
 # To initialize zoxide, add this to your shell configuration file (usually ~/.bashrc):
 #
 # eval "$(zoxide init bash)"
-
-# --- fnm init ---
-export PATH="/run/user/1000/fnm_multishells/27264_1791860124604/bin":"$PATH"
-export FNM_MULTISHELL_PATH="/run/user/1000/fnm_multishells/27264_1791860124604"
-export FNM_VERSION_FILE_STRATEGY="local"
-export FNM_DIR="/home/john/.local/share/fnm"
-export FNM_LOGLEVEL="info"
-export FNM_NODE_DIST_MIRROR="https://nodejs.org/dist"
-export FNM_COREPACK_ENABLED="false"
-export FNM_RESOLVE_ENGINES="true"
-export FNM_ARCH="x64"
-__fnm_use_if_file_found() {
-    if [[ -f .node-version || -f .nvmrc || -f package.json ]]; then
-    fnm use --silent-if-unchanged
-fi
-
-}
-
-__fnmcd() {
-    \cd "$@" || return $?
-    __fnm_use_if_file_found
-}
-
-alias cd=__fnmcd
-__fnm_use_if_file_found
-
 
 # --- fzf init ---
 ### key-bindings.bash ###
@@ -1070,5 +1063,5 @@ fi
 ### end: completion.bash ###
 
 # --- starship init ---
-eval -- "$(/usr/local/bin/starship init bash --print-full-init)"
+eval -- "$('C:\Users\JohnN\scoop\apps\starship\current\starship.exe' init bash --print-full-init)"
 

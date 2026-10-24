@@ -43,14 +43,19 @@ fn run_tool_init(tool_name: &str, program: &str, args: &[&str]) -> Option<String
     }
 }
 
+// fnm không được cache: `fnm env` tạo thư mục multishell riêng cho từng phiên shell
+// và in ra cả PATH hiện tại, nên cache lại sẽ khiến mọi shell dùng chung một PATH cũ.
+const FNM_LIVE_POSIX: &str = "# --- fnm init (live, không cache) ---\nif command -v fnm >/dev/null 2>&1; then\n  eval \"$(fnm env --use-on-cd --shell {shell})\"\nfi\n\n";
+const FNM_LIVE_POWERSHELL: &str = "# --- fnm init (live, không cache) ---\nif (Get-Command fnm -ErrorAction SilentlyContinue) {\n    fnm env --use-on-cd --shell powershell | Out-String | Invoke-Expression\n}\n\n";
+
 pub fn generate_zsh_cache(out_dir: &Path) -> Result<()> {
     let mut content = String::from(
         "# Auto-generated Zsh init cache by 'dot inject' / 'dot theme reload'\n# Do not edit manually - regenerate with 'dot inject' or 'dot theme reload'\n\n",
     );
+    content.push_str(&FNM_LIVE_POSIX.replace("{shell}", "zsh"));
 
-    let tools: [(&str, &str, &[&str]); 4] = [
+    let tools: [(&str, &str, &[&str]); 3] = [
         ("zoxide", "zoxide", &["init", "zsh"]),
-        ("fnm", "fnm", &["env", "--use-on-cd", "--shell", "zsh"]),
         ("fzf", "fzf", &["--zsh"]),
         ("starship", "starship", &["init", "zsh"]),
     ];
@@ -74,10 +79,10 @@ pub fn generate_bash_cache(out_dir: &Path) -> Result<()> {
     let mut content = String::from(
         "# Auto-generated Bash init cache by 'dot inject' / 'dot theme reload'\n# Do not edit manually - regenerate with 'dot inject' or 'dot theme reload'\n\n",
     );
+    content.push_str(&FNM_LIVE_POSIX.replace("{shell}", "bash"));
 
-    let tools: [(&str, &str, &[&str]); 4] = [
+    let tools: [(&str, &str, &[&str]); 3] = [
         ("zoxide", "zoxide", &["init", "bash"]),
-        ("fnm", "fnm", &["env", "--use-on-cd", "--shell", "bash"]),
         ("fzf", "fzf", &["--bash"]),
         ("starship", "starship", &["init", "bash"]),
     ];
@@ -102,18 +107,19 @@ pub fn generate_powershell_cache(out_dir: &Path) -> Result<()> {
         "# Auto-generated PowerShell init cache by 'dot inject' / 'dot theme reload'\n# Do not edit manually - regenerate with 'dot inject' or 'dot theme reload'\n\n",
     );
 
-    let tools: [(&str, &str, &[&str]); 3] = [
-        ("starship", "starship", &["init", "powershell"]),
+    // `starship init powershell` chỉ in ra một dòng gọi lại starship.exe lúc khởi động;
+    // --print-full-init lấy luôn script đầy đủ để shell không phải spawn starship thêm lần nữa.
+    let tools: [(&str, &str, &[&str]); 2] = [
         (
-            "fnm",
-            "fnm",
-            &["env", "--use-on-cd", "--shell", "powershell"],
+            "starship",
+            "starship",
+            &["init", "powershell", "--print-full-init"],
         ),
         ("zoxide", "zoxide", &["init", "powershell"]),
     ];
 
     let mut using_statements = Vec::new();
-    let mut body = String::new();
+    let mut body = String::from(FNM_LIVE_POWERSHELL);
 
     for (name, prog, args) in &tools {
         if let Some(out) = run_tool_init(name, prog, args) {

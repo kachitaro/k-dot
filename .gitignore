@@ -45,4 +45,9 @@ target/
 cli/target/
 bin/*.exe
 
+# Auto-generated shell init caches (chứa đường dẫn tuyệt đối của từng máy)
+themes/generated/init.ps1
+themes/generated/init.bash
+themes/generated/init.zsh
+
 
