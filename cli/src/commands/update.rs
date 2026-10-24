@@ -59,6 +59,23 @@ fn install_binary(src: &Path, dest: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Tìm PowerShell khả dụng trên Windows: thử "powershell" (Windows PowerShell 5.x)
+/// trước, rồi fallback sang "pwsh" (PowerShell 7+).
+#[cfg(windows)]
+fn find_powershell() -> Result<String> {
+    for candidate in &["powershell", "pwsh"] {
+        let probe = Command::new(candidate)
+            .args(["-NoProfile", "-Command", "exit 0"])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status();
+        if probe.map(|s| s.success()).unwrap_or(false) {
+            return Ok(candidate.to_string());
+        }
+    }
+    anyhow::bail!("Không tìm thấy 'powershell' hay 'pwsh' trong PATH.");
+}
+
 pub fn execute() -> Result<()> {
     println!(
         "{}",
@@ -153,7 +170,10 @@ pub fn execute() -> Result<()> {
             ext = temp_dir.display()
         );
 
-        let status = Command::new("powershell")
+        let ps_exe = find_powershell().context(
+            "Không tìm thấy PowerShell. Hãy đảm bảo 'powershell' hoặc 'pwsh' có trong PATH.",
+        )?;
+        let status = Command::new(&ps_exe)
             .args(["-NoProfile", "-Command", &ps_script])
             .status()?;
 
