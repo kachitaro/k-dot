@@ -2,7 +2,7 @@
 # 🚀 Windows Dotfiles & Dev Environment Installer
 # Usage:
 #   # ⚡ Fast Install: Tải CLI dot và gắn cấu hình ngay
-#   irm https://raw.githubusercontent.com/kachitaro/dotfiles/main/install.ps1 | iex
+#   irm https://raw.githubusercontent.com/kachitaro/k-dot/main/install.ps1 | iex
 #
 # ==============================================================================
 
@@ -26,7 +26,7 @@ function Write-Header {
     Write-Host @"
 ====================================================================
   [+] KACHITARO DOTFILES & DEV ENVIRONMENT INSTALLER
-  Repository: https://github.com/kachitaro/dotfiles
+  Repository: https://github.com/kachitaro/k-dot
 ====================================================================
 "@ -ForegroundColor Magenta
 }
@@ -96,7 +96,7 @@ if ((Test-Path $dotExe) -and !$ForceInstall) {
 
 if (!$skipDownload) {
     Write-Step "Thiết lập Dotfiles CLI (dot.exe)..."
-    $releaseUrl = "https://github.com/kachitaro/dotfiles/releases/latest/download/dot-x86_64-pc-windows-msvc.zip"
+    $releaseUrl = "https://github.com/kachitaro/k-dot/releases/latest/download/dot-x86_64-pc-windows-msvc.zip"
     $tempZip = "$env:TEMP\dot-release-$PID.zip"
     $tempExtract = "$env:TEMP\dot-release-extract-$PID"
 
@@ -205,7 +205,7 @@ if ($Full) {
         if (Get-Command git -ErrorAction SilentlyContinue) {
             $parentDir = Split-Path -Path $DotfilesDir -Parent
             if (!(Test-Path $parentDir)) { New-Item -ItemType Directory -Path $parentDir -Force | Out-Null }
-            git clone --depth 1 https://github.com/kachitaro/dotfiles.git $DotfilesDir
+            git clone --depth 1 https://github.com/kachitaro/k-dot.git $DotfilesDir
             Write-Suc "Dotfiles đã sẵn sàng tại $DotfilesDir"
         }
     }

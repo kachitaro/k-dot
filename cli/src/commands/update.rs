@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 const CURRENT_VERSION: &str = env!("CARGO_PKG_VERSION");
-const REPO: &str = "kachitaro/dotfiles";
+const REPO: &str = "kachitaro/k-dot";
 
 /// Tính SHA-256 hash dạng hex chuỗi thường từ mảng bytes
 pub fn compute_sha256(bytes: &[u8]) -> String {
