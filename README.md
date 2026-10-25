@@ -290,7 +290,7 @@ feature/* ──PR──▶ develop ──PR──▶ release ──▶ GitHub R
   1. Runs the CI tests.
   2. Picks the version: the one in `cli/Cargo.toml`, bumped by one patch until an unused tag is found. A version entered manually must not already exist.
   3. Builds the 5 binaries and publishes a GitHub Release with SHA-256 checksums. The tag points at the commit that was built.
-  4. Commits the new version (`Cargo.toml` + `Cargo.lock`) back to `main` and `develop`.
+  4. Commits the new version (`Cargo.toml` + `Cargo.lock`) back to `main`, `develop` and `release`, so the three branches never disagree on the version line.
 - After a release, open a PR from `release` into `main` so `main` gets the code as well.
 
 > [!WARNING]

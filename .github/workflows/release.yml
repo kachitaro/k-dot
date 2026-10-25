@@ -222,7 +222,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        branch: [main, develop]
+        # Đẩy về cả release: nếu không, release tụt lại một version nên PR release -> main
+        # luôn xung đột ở dòng version, và commit bump từ develop đi vào release bị bộ lọc
+        # paths cli/** coi là thay đổi CLI, gây phát hành thừa. Push bằng GITHUB_TOKEN kèm
+        # [skip ci] không kích hoạt lại workflow này.
+        branch: [main, develop, release]
     steps:
       - name: Checkout ${{ matrix.branch }} branch
         uses: actions/checkout@v4

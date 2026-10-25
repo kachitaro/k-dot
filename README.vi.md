@@ -290,7 +290,7 @@ feature/* ──PR──▶ develop ──PR──▶ release ──▶ GitHub R
   1. Chạy các test của CI.
   2. Chọn version: lấy version trong `cli/Cargo.toml`, tăng patch cho tới khi gặp tag chưa tồn tại. Version nhập tay không được trùng tag đã có.
   3. Build 5 binary và tạo GitHub Release kèm checksum SHA-256. Tag trỏ đúng commit đã build.
-  4. Commit version mới (`Cargo.toml` + `Cargo.lock`) về cả `main` và `develop`.
+  4. Commit version mới (`Cargo.toml` + `Cargo.lock`) về cả `main`, `develop` và `release`, để ba nhánh không bao giờ lệch nhau ở dòng version.
 - Sau khi phát hành, mở PR từ `release` vào `main` để `main` nhận phần code.
 
 > [!WARNING]
