@@ -28,21 +28,45 @@ local UPDATE_INTERVAL = 5
 local is_windows = wezterm.target_triple:find("windows") ~= nil
 local is_linux = wezterm.target_triple:find("linux") ~= nil
 
--- Lấy thông số RAM hệ thống
-local function get_ram_usage()
-  if is_windows then
-    local success, stdout = wezterm.run_child_process({
-      'cmd.exe', '/c', 'wmic OS get FreePhysicalMemory,TotalVisibleMemorySize /Value'
-    })
-    if success and stdout then
-      local free = stdout:match("FreePhysicalMemory=(%d+)")
-      local total = stdout:match("TotalVisibleMemorySize=(%d+)")
-      if free and total then
-        local used = tonumber(total) - tonumber(free)
-        return tostring(math.floor((used / tonumber(total)) * 100 + 0.5))
-      end
+-- Windows: wmic đã bị gỡ từ Windows 11 24H2, còn spawn PowerShell mỗi lần mất ~2.5s.
+-- Thay vào đó sysstat.ps1 chạy nền (một bản duy nhất) và ghi số liệu ra file, ở đây chỉ đọc file.
+local SYSSTAT_FILE = (os.getenv("TEMP") or ".") .. "\\wezterm-sysstat.txt"
+local SYSSTAT_STALE = 15
+local sysstat_started_at = 0
+
+local function read_windows_sysstat()
+  local content
+  local file = io.open(SYSSTAT_FILE, "r")
+  if file then
+    content = file:read("*l")
+    file:close()
+  end
+
+  local epoch, ram, vram_pct, vram_used
+  if content then
+    epoch, ram, vram_pct, vram_used = content:match("^(%d+) (%S+) (%S+) (%S+)")
+  end
+
+  local now = os.time()
+  if not epoch or now - tonumber(epoch) > SYSSTAT_STALE then
+    -- Chưa chạy hoặc đã thoát: khởi động lại (mutex trong script chặn chạy trùng)
+    if now - sysstat_started_at > SYSSTAT_STALE then
+      sysstat_started_at = now
+      wezterm.background_child_process({
+        'powershell.exe', '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
+        '-File', wezterm.config_dir .. '\\sysstat.ps1',
+      })
     end
-  elseif is_linux then
+    return nil, nil, nil
+  end
+
+  local function pct(v) return tonumber(v) and v or nil end
+  return pct(ram), pct(vram_pct), tonumber(vram_used)
+end
+
+-- Lấy thông số RAM hệ thống (Linux; Windows dùng read_windows_sysstat)
+local function get_ram_usage()
+  if is_linux then
     local file = io.open("/proc/meminfo", "r")
     if file then
       local mem_total, mem_available
@@ -89,7 +113,9 @@ function module.setup()
   wezterm.on('update-status', function(window, pane)
     local current_time = os.time()
 
-    if current_time - last_check_time >= UPDATE_INTERVAL then
+    if is_windows then
+      cached_ram_usage, cached_vram_pct, cached_vram_used = read_windows_sysstat()
+    elseif current_time - last_check_time >= UPDATE_INTERVAL then
       cached_ram_usage = get_ram_usage()
       cached_vram_pct, cached_vram_used = get_vram_usage()
       last_check_time = current_time
