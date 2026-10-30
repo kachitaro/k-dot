@@ -52,6 +52,7 @@ return {
   },
   {
     "nvim-tree/nvim-tree.lua",
+    lazy = false, -- tải sẵn lúc khởi động để C-b lần đầu mở được ngay
     opts = {
       view = {
         width = 32,
@@ -78,7 +79,6 @@ return {
             git = false, -- Tắt icon ký hiệu Git (dấu ✗ / x) để màu tên file thể hiện
             diagnostics = false, -- Tắt vẽ icon diagnostic dạng sign column để không gây lỗi sign_place
           },
-          diagnostics_placement = "none",
         },
       },
       diagnostics = {
